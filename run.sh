@@ -1,1 +1,0 @@
-java -jar target/array-init-1.0-jar-with-dependencies.jar

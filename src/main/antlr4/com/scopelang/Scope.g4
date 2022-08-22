@@ -1,8 +1,23 @@
 grammar Scope;
 
-init: '{' value (',' value)* '}';
+// Parser
 
-value: init | INT;
+program: (statement ENDL)* EOF;
 
-INT: [0-9]+;
-WS: [ \t\r\n]+ -> skip;
+statement: IDENT ASSIGN INT | IDENT ASSIGN DOUBLE;
+
+// Lexer
+
+ASSIGN: '=';
+
+ENDL: ';';
+
+IDENT: [a-zA-Z_][a-zA-Z0-9_]*;
+
+INT: NUMBER;
+DOUBLE: DECIMAL_NUMBER;
+
+fragment NUMBER: [0-9]+;
+fragment DECIMAL_NUMBER: [0-9]* '.' [0-9]+;
+
+WHITESPACE: [ \t\r\n]+ -> skip;

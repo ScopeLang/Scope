@@ -1,0 +1,17 @@
+#!/bin/bash
+
+echo
+echo -e "\e[32m== Scope ==\e[0m"
+echo
+java -jar target/scopelang-1.0-jar-with-dependencies.jar env/$1
+echo
+echo -e "\e[32m== FASM ==\e[0m"
+echo
+fasm env/$1.asm _temp
+echo
+echo -e "\e[32m== Output ==\e[0m"
+echo
+chmod +x _temp
+./_temp
+rm _temp
+echo

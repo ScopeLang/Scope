@@ -8,7 +8,7 @@ These dependencies are required to build:
 - `java`
 - `maven`
 
-After these are installed:
+After these are installed run:
 
 ```bash
 # Clone...
@@ -18,6 +18,16 @@ $ mvn package
 # Run!
 $ ./run.sh <FILE>
 ```
+
+## Running / Linux
+
+`fasm` is required to run a Scope program.
+
+```bash
+$ ./scope <file>
+```
+
+`<file>` is relative to `env/`. This script temporarily creates a file called `_temp`.
 
 ## Why Java? ☕
 
