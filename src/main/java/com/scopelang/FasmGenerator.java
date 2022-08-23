@@ -1,9 +1,11 @@
 package com.scopelang;
 
 import java.io.*;
+import java.nio.charset.StandardCharsets;
 
 public class FasmGenerator {
 	private String fileName;
+
 	private PrintWriter writer;
 
 	private int indent = 0;
@@ -19,29 +21,56 @@ public class FasmGenerator {
 		}
 	}
 
-	public void generate() {
+	public void generate(Preprocessor preprocessor) {
+		// Header
 		write("format ELF64 executable 3");
 		writeEmpty();
 		write("segment readable executable");
-		write("entry main");
+		write("entry _main");
 		writeEmpty();
-		write("main:");
+
+		// Standard procedures
+		write("_exit:");
 		indent();
-		write("lea rdi, [msg]");
-		write("mov rax, 14");
-		write("mov rdx, rax");
-		write("mov rsi, rdi");
+		write("mov rdi, rax");
+		write("mov rax, 60");
+		write("syscall");
+		write("ret");
+		unindent();
+		writeEmpty();
+		write("_print:");
+		indent();
+		write("mov rsi, rax");
 		write("mov rdi, 1");
 		write("mov rax, 1");
 		write("syscall");
-		write("xor rdi, rdi");
-		write("mov rax, 60");
-		write("syscall");
+		write("ret");
 		unindent();
 		writeEmpty();
+
+		// Code
+		write("_main:");
+		indent();
+		write("mov rax, 0");
+		write("call _exit");
+		unindent();
+		writeEmpty();
+
+		// Strings
 		write("segment readable writable");
 		writeEmpty();
-		write("msg db 'Hello, World!', 10, 0");
+		for (int i = 0; i < preprocessor.extactedStrings.size(); i++) {
+			String name = "str" + i;
+
+			String bytes = "";
+			for (byte b : preprocessor.extactedStrings.get(i).getBytes(StandardCharsets.UTF_8)) {
+				bytes += (int) b + ", ";
+			}
+			bytes = bytes.substring(0, bytes.length() - 2);
+
+			write(name + " db " + bytes);
+			write(name + ".len = $ - " + name);
+		}
 
 		finish();
 	}

@@ -8,7 +8,7 @@ These dependencies are required to build:
 - `java`
 - `maven`
 
-After these are installed run:
+After these are installed, run:
 
 ```bash
 # Clone...

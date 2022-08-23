@@ -13,5 +13,6 @@ echo -e "\e[32m== Output ==\e[0m"
 echo
 chmod +x _temp
 ./_temp
+echo -e "\e[2m\e[37mExited with:" $? "\e[0m"
 rm _temp
 echo
