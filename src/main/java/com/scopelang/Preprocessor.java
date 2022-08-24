@@ -1,33 +1,31 @@
 package com.scopelang;
 
-import java.util.ArrayList;
+import java.util.HashMap;
+
 import org.antlr.v4.runtime.*;
 
 public class Preprocessor {
 	private CommonTokenStream stream;
-	private TokenStreamRewriter rewriter;
 
-	public ArrayList<String> extactedStrings;
+	public HashMap<String, Integer> extactedStrings;
 
 	public Preprocessor(CommonTokenStream tokenStream) {
 		stream = tokenStream;
-		rewriter = new TokenStreamRewriter(tokenStream);
 
-		extactedStrings = new ArrayList<String>();
+		extactedStrings = new HashMap<String, Integer>();
+
+		preprocess();
 	}
 
-	public TokenStream getStream() {
+	private void preprocess() {
 		stream.fill();
 		for (int i = 0; i < stream.size(); i++) {
 			Token token = stream.get(i);
 			if (token.getType() == ScopeLexer.STRING) {
-				String rawStr = token.getText();
-				extactedStrings.add(rawStr.substring(1, rawStr.length() - 1));
-
-				// rewriter.replace(i, "str" + (extactedStrings.size() - 1));
+				String str = token.getText();
+				int index = extactedStrings.size();
+				extactedStrings.put(str, index);
 			}
 		}
-
-		return rewriter.getTokenStream();
 	}
 }

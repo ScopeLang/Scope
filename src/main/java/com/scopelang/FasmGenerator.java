@@ -81,11 +81,12 @@ public class FasmGenerator extends ScopeBaseListener {
 	}
 
 	private void writeStrings() {
-		for (int i = 0; i < preprocessor.extactedStrings.size(); i++) {
-			String name = "str" + i;
+		for (var entry : preprocessor.extactedStrings.entrySet()) {
+			String name = "str" + entry.getValue();
+			String str = Utils.processLiteral(entry.getKey());
 
 			String bytes = "";
-			for (byte b : preprocessor.extactedStrings.get(i).getBytes(StandardCharsets.UTF_8)) {
+			for (byte b : str.getBytes(StandardCharsets.UTF_8)) {
 				bytes += (int) b + ", ";
 			}
 			bytes = bytes.substring(0, bytes.length() - 2);
@@ -118,8 +119,11 @@ public class FasmGenerator extends ScopeBaseListener {
 	public void exitInvoke(InvokeContext ctx) {
 		String ident = ctx.IDENT().getText();
 		if (ident.equals("print")) {
-			write("lea rax, [str0]");
-			write("mov rdx, str0.size");
+			String str = ctx.STRING().getText();
+			int index = preprocessor.extactedStrings.get(str);
+
+			write("lea rax, [str" + index + "]");
+			write("mov rdx, str" + index + ".size");
 			write("call _print");
 		}
 	}

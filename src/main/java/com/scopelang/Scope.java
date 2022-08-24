@@ -19,7 +19,7 @@ public class Scope {
 		Preprocessor preprocessor = new Preprocessor(stream);
 
 		// Parse
-		ScopeParser parser = new ScopeParser(preprocessor.getStream());
+		ScopeParser parser = new ScopeParser(stream);
 		ParseTree tree = parser.program();
 
 		// Generate
