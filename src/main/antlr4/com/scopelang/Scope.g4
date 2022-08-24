@@ -6,7 +6,9 @@ grammar Scope;
 
 program: (statement ENDL)* EOF;
 
-statement: 'print' '(' STRING ')';
+statement: invoke;
+
+invoke: IDENT '(' STRING ')';
 
 // =============== //
 // ==== Lexer ==== //

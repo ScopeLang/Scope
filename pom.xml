@@ -38,6 +38,10 @@
 				<groupId>org.antlr</groupId>
 				<artifactId>antlr4-maven-plugin</artifactId>
 				<version>4.10.1</version>
+				<configuration>
+					<visitor>false</visitor>
+					<listener>true</listener>
+				</configuration>
 				<executions>
 					<execution>
 						<goals>

@@ -10,14 +10,22 @@ public class Scope {
 			return;
 		}
 
-		CharStream stream = CharStreams.fromFileName(args[0]);
-		ScopeLexer lexer = new ScopeLexer(stream);
-		Preprocessor preprocessor = new Preprocessor(lexer);
+		// Lex
+		CharStream inputStream = CharStreams.fromFileName(args[0]);
+		ScopeLexer lexer = new ScopeLexer(inputStream);
 
-		ScopeParser parser = new ScopeParser(preprocessor.build());
+		// Preprocess
+		CommonTokenStream stream = new CommonTokenStream(lexer);
+		Preprocessor preprocessor = new Preprocessor(stream);
+
+		// Parse
+		ScopeParser parser = new ScopeParser(preprocessor.getStream());
 		ParseTree tree = parser.program();
 
-		FasmGenerator generator = new FasmGenerator(args[0] + ".asm");
-		generator.generate(preprocessor);
+		// Generate
+		FasmGenerator generator = new FasmGenerator(args[0] + ".asm", preprocessor);
+		generator.genHeader();
+		ParseTreeWalker.DEFAULT.walk(generator, tree);
+		generator.finishGen();
 	}
 }
