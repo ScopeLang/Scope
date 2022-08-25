@@ -3,6 +3,8 @@ package com.scopelang;
 import org.antlr.v4.runtime.*;
 import org.antlr.v4.runtime.tree.*;
 
+import com.scopelang.fasm.FasmGenerator;
+
 public class Scope {
 	public static void main(String[] args) throws Exception {
 		if (args.length != 1) {
@@ -24,7 +26,7 @@ public class Scope {
 
 		// Generate
 		FasmGenerator generator = new FasmGenerator(args[0] + ".asm", preprocessor);
-		generator.genHeader();
+		generator.insertHeader();
 		ParseTreeWalker.DEFAULT.walk(generator, tree);
 		generator.finishGen();
 	}

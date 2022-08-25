@@ -1,8 +1,13 @@
-package com.scopelang;
+package com.scopelang.fasm;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 
+import org.apache.commons.io.IOUtils;
+
+import com.scopelang.*;
 import com.scopelang.ScopeParser.InvokeContext;
 
 public class FasmGenerator extends ScopeBaseListener {
@@ -25,56 +30,32 @@ public class FasmGenerator extends ScopeBaseListener {
 		}
 	}
 
-	public void genHeader() {
-		// Header
-		write("format ELF64 executable 3");
-		write("");
-		write("struc db [data] {");
-		write("common");
-		indent++;
-		write(". db data");
-		write(".size = $ - .");
-		indent--;
-		write("}");
-		write("");
-		write("segment readable executable");
-		write("entry _main");
-		write("");
+	public void insertHeader() {
+		String date = DateTimeFormatter.ofPattern("yyyy/MM/dd hh:mm:ss a").format(LocalDateTime.now());
 
-		// Standard procedures
-		write("_exit:");
-		indent++;
-		write("mov rdi, rax");
-		write("mov rax, 60");
-		write("syscall");
-		write("ret");
-		indent--;
-		write("");
-		write("_print:");
-		indent++;
-		write("mov rsi, rax");
-		write("mov rdi, 1");
-		write("mov rax, 1");
-		write("syscall");
-		write("ret");
-		indent--;
-		write("");
-
-		// Code start
-		write("_main:");
+		indent = 0;
+		write("; Generated to `" + fileName + "` at " + date);
+		try {
+			InputStream in = getClass().getResourceAsStream("GenericHeader.inc");
+			write(IOUtils.toString(in, StandardCharsets.UTF_8));
+		} catch (IOException e) {
+			System.out.println("Could not insert header.");
+			e.printStackTrace();
+		}
 		indent++;
 	}
 
 	public void finishGen() {
-		// Code end
-		write("mov rax, 0");
-		write("call _exit");
-		indent--;
-		write("");
+		// Insert footer
+		indent = 0;
+		try {
+			InputStream in = getClass().getResourceAsStream("GenericFooter.inc");
+			write(IOUtils.toString(in, StandardCharsets.UTF_8));
+		} catch (IOException e) {
+			System.out.println("Could not insert footer.");
+			e.printStackTrace();
+		}
 
-		// Data
-		write("segment readable writable");
-		write("");
 		writeStrings();
 
 		finish();
@@ -82,7 +63,7 @@ public class FasmGenerator extends ScopeBaseListener {
 
 	private void writeStrings() {
 		for (var entry : preprocessor.extactedStrings.entrySet()) {
-			String name = "str" + entry.getValue();
+			String name = "c_" + entry.getValue();
 			String str = Utils.processLiteral(entry.getKey());
 
 			String bytes = "";
@@ -122,9 +103,9 @@ public class FasmGenerator extends ScopeBaseListener {
 			String str = ctx.STRING().getText();
 			int index = preprocessor.extactedStrings.get(str);
 
-			write("lea rax, [str" + index + "]");
-			write("mov rdx, str" + index + ".size");
-			write("call _print");
+			write("lea rax, [c_" + index + "]");
+			write("mov rdx, c_" + index + ".size");
+			write("call print");
 		}
 	}
 }
