@@ -25,7 +25,7 @@ public class FasmGenerator extends ScopeBaseListener {
 		try {
 			writer = new PrintWriter(fileName);
 		} catch (IOException e) {
-			System.out.println("Could not generate file.");
+			Utils.log("Could not generate file.");
 			e.printStackTrace();
 		}
 	}
@@ -39,7 +39,7 @@ public class FasmGenerator extends ScopeBaseListener {
 			InputStream in = getClass().getResourceAsStream("GenericHeader.inc");
 			write(IOUtils.toString(in, StandardCharsets.UTF_8));
 		} catch (IOException e) {
-			System.out.println("Could not insert header.");
+			Utils.log("Could not insert header.");
 			e.printStackTrace();
 		}
 		indent++;
@@ -52,7 +52,7 @@ public class FasmGenerator extends ScopeBaseListener {
 			InputStream in = getClass().getResourceAsStream("GenericFooter.inc");
 			write(IOUtils.toString(in, StandardCharsets.UTF_8));
 		} catch (IOException e) {
-			System.out.println("Could not insert footer.");
+			Utils.log("Could not insert footer.");
 			e.printStackTrace();
 		}
 
@@ -90,7 +90,7 @@ public class FasmGenerator extends ScopeBaseListener {
 	}
 
 	private void finish() {
-		System.out.println("Finished writing assembly to `" + fileName + "`.");
+		Utils.log("Finished writing assembly to `" + fileName + "`.");
 
 		writer.flush();
 		writer.close();

@@ -13,21 +13,19 @@ After these are installed, run:
 ```bash
 # Clone...
 $ git clone https://github.com/EliteAsian123/Scope.git
-# Build... 
+# Build...
 $ mvn package
-# Run!
-$ ./run.sh <FILE>
+# That is it! Make sure to check `Running / (YOUR OS)`
 ```
 
 ## Running / Linux
 
 `fasm` is required to run a Scope program.
+`fasm` can be installed with `sudo apt install fasm`.
 
 ```bash
 $ ./scope <file>
 ```
-
-`<file>` is relative to `env/`. This script temporarily creates a file called `_temp`.
 
 ## Why Java? ☕
 
