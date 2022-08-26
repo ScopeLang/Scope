@@ -8,15 +8,17 @@ import java.time.format.DateTimeFormatter;
 import org.apache.commons.io.IOUtils;
 
 import com.scopelang.*;
+import com.scopelang.ScopeParser.FuncContext;
 import com.scopelang.ScopeParser.InvokeContext;
 
 public class FasmGenerator extends ScopeBaseListener {
 	private String fileName;
 	private Preprocessor preprocessor;
-
 	private PrintWriter writer;
 
 	private int indent = 0;
+
+	private boolean mainFound = false;
 
 	public FasmGenerator(String fileName, Preprocessor preprocessor) {
 		this.fileName = fileName;
@@ -42,7 +44,6 @@ public class FasmGenerator extends ScopeBaseListener {
 			Utils.log("Could not insert header.");
 			e.printStackTrace();
 		}
-		indent++;
 	}
 
 	public void finishGen() {
@@ -57,6 +58,10 @@ public class FasmGenerator extends ScopeBaseListener {
 		}
 
 		writeStrings();
+
+		if (!mainFound) {
+			Utils.log("Warning! `main` function not found. FASM will crash!");
+		}
 
 		finish();
 	}
@@ -97,15 +102,43 @@ public class FasmGenerator extends ScopeBaseListener {
 	}
 
 	@Override
+	public void enterFunc(FuncContext ctx) {
+		String ident = ctx.Identifier().getText();
+		if (ident.equals("main")) {
+			mainFound = true;
+		}
+
+		write("f_" + ident + ":");
+		indent++;
+	}
+
+	@Override
+	public void exitFunc(FuncContext ctx) {
+		// Add program exit if main func, return otherwise
+		String ident = ctx.Identifier().getText();
+		if (ident.equals("main")) {
+			write("mov rax, 0");
+			write("call exit");
+		} else {
+			write("ret");
+		}
+
+		indent--;
+		write("");
+	}
+
+	@Override
 	public void exitInvoke(InvokeContext ctx) {
-		String ident = ctx.IDENT().getText();
+		String ident = ctx.Identifier().getText();
 		if (ident.equals("print")) {
-			String str = ctx.STRING().getText();
+			String str = ctx.StringLiteral().getText();
 			int index = preprocessor.extactedStrings.get(str);
 
 			write("lea rax, [c_" + index + "]");
 			write("mov rdx, c_" + index + ".size");
 			write("call print");
+		} else {
+			write("call f_" + ident);
 		}
 	}
 }

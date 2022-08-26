@@ -89,11 +89,14 @@ public final class Scope {
 			return;
 		}
 
-		// Generate executable
-		Utils.log("\n\033[0;32m== Compiling ==\033[0m\n");
+		// Delete old executable (if exists)
 		if (outputName == null) {
 			outputName = asmName.split("\\.")[0] + ".out";
 		}
+		Utils.runCmdAndWait("rm", "-f", outputName);
+
+		// Generate executable
+		Utils.log("\n\033[0;32m== Compiling ==\033[0m\n");
 		Utils.runCmdAndWait("fasm", asmName, outputName);
 		Utils.runCmdAndWait("chmod", "+x", outputName);
 		Utils.log("Finished compiling to `" + outputName + "`.");
@@ -119,7 +122,7 @@ public final class Scope {
 		if (!delete) {
 			return;
 		}
-		Utils.runCmd("rm", asmName);
-		Utils.runCmd("rm", outputName);
+		Utils.runCmd("rm", "-f", asmName);
+		Utils.runCmd("rm", "-f", outputName);
 	}
 }

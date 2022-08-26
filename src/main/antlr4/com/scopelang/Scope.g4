@@ -4,28 +4,41 @@ grammar Scope;
 // ==== Parser ==== //
 // ================ //
 
-program: (statement ENDL)* EOF;
+// First node
+program: code EOF;
 
-statement: invoke;
+code: (statement | codeblock)*?;
+codeblock: '{' code '}';
 
-invoke: IDENT '(' STRING ')';
+statement: func | invoke;
+typeName: VoidType;
+
+func: FuncKeyword typeName Identifier '(' ')' codeblock;
+invoke: Identifier '(' StringLiteral? ')' EndLine;
 
 // =============== //
 // ==== Lexer ==== //
 // =============== //
 
-ENDL: ';';
+// Keywords
+FuncKeyword: 'func';
 
-IDENT: [a-zA-Z_][a-zA-Z0-9_]*;
+// Primitive types
+VoidType: 'void';
 
 // Literals
-INT: NUMBER;
-DOUBLE: DECIMAL_NUMBER;
-STRING: '"' .*? '"';
+IntLiteral: NumberFrag;
+DoubleLiteral: DecimalNumberFrag;
+StringLiteral: '"' .*? '"';
 
 // Literal fragments
-fragment NUMBER: [0-9]+;
-fragment DECIMAL_NUMBER: [0-9]* '.' [0-9]+;
+fragment NumberFrag: [0-9]+;
+fragment DecimalNumberFrag: [0-9]* '.' [0-9]+;
+
+// Important
+Identifier: [a-zA-Z_][a-zA-Z0-9_]*;
+EndLine: ';';
 
 // Ignore
-WHITESPACE: [ \t\r\n]+ -> skip;
+Whitespace: [ \t\r\n]+ -> skip;
+LineComment: '//' ~[\r\n]* -> skip; 

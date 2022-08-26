@@ -8,7 +8,7 @@ common
 }
 
 segment readable executable
-entry main
+entry f_main
 
 ; Exit procedure
 exit:
@@ -24,6 +24,3 @@ print:
 	mov rax, 1
 	syscall
 	ret
-
-; Entry point
-main:

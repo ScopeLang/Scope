@@ -1,3 +1,3 @@
-print("Hello, World!\n");
-print("Hello, Again!\n");
-print("Hello, World!\n");
+func void main() {
+	print("Hello, World!\n");
+}

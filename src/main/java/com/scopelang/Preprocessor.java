@@ -21,7 +21,7 @@ public class Preprocessor {
 		stream.fill();
 		for (int i = 0; i < stream.size(); i++) {
 			Token token = stream.get(i);
-			if (token.getType() == ScopeLexer.STRING) {
+			if (token.getType() == ScopeLexer.StringLiteral) {
 				String str = token.getText();
 				int index = extactedStrings.size();
 				extactedStrings.put(str, index);
