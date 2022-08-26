@@ -4,12 +4,12 @@ import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.HashMap;
 
 import org.apache.commons.io.IOUtils;
 
 import com.scopelang.*;
-import com.scopelang.ScopeParser.FuncContext;
-import com.scopelang.ScopeParser.InvokeContext;
+import com.scopelang.ScopeParser.*;
 
 public class FasmGenerator extends ScopeBaseListener {
 	private String fileName;
@@ -19,6 +19,8 @@ public class FasmGenerator extends ScopeBaseListener {
 	private int indent = 0;
 
 	private boolean mainFound = false;
+	private HashMap<String, Integer> localVariables = new HashMap<>();
+	private int localVariableMax = 0;
 
 	public FasmGenerator(String fileName, Preprocessor preprocessor) {
 		this.fileName = fileName;
@@ -47,16 +49,8 @@ public class FasmGenerator extends ScopeBaseListener {
 	}
 
 	public void finishGen() {
-		// Insert footer
-		indent = 0;
-		try {
-			InputStream in = getClass().getResourceAsStream("GenericFooter.inc");
-			write(IOUtils.toString(in, StandardCharsets.UTF_8));
-		} catch (IOException e) {
-			Utils.log("Could not insert footer.");
-			e.printStackTrace();
-		}
-
+		write("segment readable");
+		write("");
 		writeStrings();
 
 		if (!mainFound) {
@@ -102,7 +96,7 @@ public class FasmGenerator extends ScopeBaseListener {
 	}
 
 	@Override
-	public void enterFunc(FuncContext ctx) {
+	public void enterFunction(FunctionContext ctx) {
 		String ident = ctx.Identifier().getText();
 		if (ident.equals("main")) {
 			mainFound = true;
@@ -110,10 +104,17 @@ public class FasmGenerator extends ScopeBaseListener {
 
 		write("f_" + ident + ":");
 		indent++;
+		write("push rbp");
+		write("mov rbp, rsp");
+
+		localVariables.clear();
+		localVariableMax = 0;
 	}
 
 	@Override
-	public void exitFunc(FuncContext ctx) {
+	public void exitFunction(FunctionContext ctx) {
+		write("pop rbp");
+
 		// Add program exit if main func, return otherwise
 		String ident = ctx.Identifier().getText();
 		if (ident.equals("main")) {
@@ -127,11 +128,18 @@ public class FasmGenerator extends ScopeBaseListener {
 		write("");
 	}
 
+	// @Override
+	// public void exitDeclare(DeclareContext ctx) {
+	// String ident = ctx.Identifier().getText();
+	// localVariableMax += 4;
+	// localVariables.put(ident, localVariableMax);
+	// }
+
 	@Override
 	public void exitInvoke(InvokeContext ctx) {
 		String ident = ctx.Identifier().getText();
 		if (ident.equals("print")) {
-			String str = ctx.StringLiteral().getText();
+			String str = ctx.expr().getText();
 			int index = preprocessor.extactedStrings.get(str);
 
 			write("lea rax, [c_" + index + "]");

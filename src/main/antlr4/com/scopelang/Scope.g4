@@ -1,51 +1,112 @@
-grammar Scope;
+grammar Scope
+	;
 
 // ================ //
 // ==== Parser ==== //
 // ================ //
 
-// First node
-program: outerStatments EOF;
+program // First node
+	: outerStatments EOF
+	;
 
-code: (innerStatement | codeblock)*;
-codeblock: '{' code '}';
+code
+	: (innerStatement | codeblock)*
+	;
+codeblock
+	: '{' code '}'
+	;
 
-outerStatments: (outerStatement)*;
+outerStatments
+	: (outerStatement)*
+	;
 
-innerStatement: invoke;
-outerStatement: func;
+innerStatement
+	: invoke
+	| declare
+	;
+outerStatement
+	: function
+	;
 
-typeName: VoidType;
+typeName
+	: VoidType
+	;
 
 // Inner statements
-func: FuncKeyword typeName Identifier '(' ')' codeblock;
+invoke
+	: Identifier '(' expr? ')' EndLine
+	;
+declare
+	: StringType Identifier '=' expr EndLine
+	;
 
 // Outer statements
-invoke: Identifier '(' StringLiteral? ')' EndLine;
+function
+	: FuncKeyword typeName Identifier '(' ')' codeblock
+	;
+
+// Expressions
+expr
+	: literals
+	| Identifier
+	;
+literals
+	: IntLiteral
+	| DoubleLiteral
+	| StringLiteral
+	;
 
 // =============== //
 // ==== Lexer ==== //
 // =============== //
 
 // Keywords
-FuncKeyword: 'func';
+FuncKeyword
+	: 'func'
+	;
 
 // Primitive types
-VoidType: 'void';
+VoidType
+	: 'void'
+	;
+IntType
+	: 'int'
+	;
+StringType
+	: 'string'
+	;
 
 // Literals
-IntLiteral: NumberFrag;
-DoubleLiteral: DecimalNumberFrag;
-StringLiteral: '"' .*? '"';
+IntLiteral
+	: NumberFrag
+	;
+DoubleLiteral
+	: DecimalNumberFrag
+	;
+StringLiteral
+	: '"' .*? '"'
+	;
 
 // Literal fragments
-fragment NumberFrag: [0-9]+;
-fragment DecimalNumberFrag: [0-9]* '.' [0-9]+;
+fragment NumberFrag
+	: [0-9]+
+	;
+fragment DecimalNumberFrag
+	: [0-9]* '.' [0-9]+
+	;
 
 // Important
-Identifier: [a-zA-Z_][a-zA-Z0-9_]*;
-EndLine: ';';
+Identifier
+	: [a-zA-Z_][a-zA-Z0-9_]*
+	;
+EndLine
+	: ';'
+	;
 
 // Ignore
-Whitespace: [ \t\r\n]+ -> skip;
-LineComment: '//' ~[\r\n]* -> skip; 
+Whitespace
+	: [ \t\r\n]+ -> skip
+	;
+LineComment
+	: '//' ~[\r\n]* -> skip
+	;
