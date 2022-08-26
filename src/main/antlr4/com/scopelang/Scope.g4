@@ -5,15 +5,22 @@ grammar Scope;
 // ================ //
 
 // First node
-program: code EOF;
+program: outerStatments EOF;
 
-code: (statement | codeblock)*?;
+code: (innerStatement | codeblock)*;
 codeblock: '{' code '}';
 
-statement: func | invoke;
+outerStatments: (outerStatement)*;
+
+innerStatement: invoke;
+outerStatement: func;
+
 typeName: VoidType;
 
+// Inner statements
 func: FuncKeyword typeName Identifier '(' ')' codeblock;
+
+// Outer statements
 invoke: Identifier '(' StringLiteral? ')' EndLine;
 
 // =============== //
