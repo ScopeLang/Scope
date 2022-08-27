@@ -72,6 +72,7 @@
 			<!-- Create jars with dependencies -->
 			<plugin>
 				<artifactId>maven-assembly-plugin</artifactId>
+				<version>3.4.2</version>
 				<configuration>
 					<descriptorRefs>
 						<descriptorRef>jar-with-dependencies</descriptorRef>
@@ -85,10 +86,10 @@
 				</configuration>
 				<executions>
 					<execution>
-						<id>simple-command</id>
+						<id>make-assembly</id>
 						<phase>package</phase>
 						<goals>
-							<goal>attached</goal>
+							<goal>single</goal>
 						</goals>
 					</execution>
 				</executions>

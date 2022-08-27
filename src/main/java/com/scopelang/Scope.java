@@ -8,7 +8,6 @@ import com.scopelang.fasm.FasmGenerator;
 
 public final class Scope {
 	private Scope() {
-
 	}
 
 	public static void main(String[] args) {

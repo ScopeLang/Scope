@@ -6,7 +6,6 @@ public final class Utils {
 	public static boolean disableLog = false;
 
 	private Utils() {
-
 	}
 
 	public static String processLiteral(String str) {

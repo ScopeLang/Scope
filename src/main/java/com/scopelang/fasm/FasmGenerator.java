@@ -13,10 +13,10 @@ import com.scopelang.ScopeParser.*;
 
 public class FasmGenerator extends ScopeBaseListener {
 	private String fileName;
-	private Preprocessor preprocessor;
 	private PrintWriter writer;
 
-	private int indent = 0;
+	public Preprocessor preprocessor;
+	public int indent = 0;
 
 	private boolean mainFound = false;
 	private HashMap<String, Integer> localVariables = new HashMap<>();
@@ -60,6 +60,19 @@ public class FasmGenerator extends ScopeBaseListener {
 		finish();
 	}
 
+	public void write(String str) {
+		if (str.isEmpty()) {
+			writer.println();
+			return;
+		}
+
+		for (int i = 0; i < indent; i++) {
+			writer.print("\t");
+		}
+
+		writer.println(str);
+	}
+
 	private void writeStrings() {
 		for (var entry : preprocessor.extactedStrings.entrySet()) {
 			String name = "c_" + entry.getValue();
@@ -73,19 +86,6 @@ public class FasmGenerator extends ScopeBaseListener {
 
 			write(name + " db " + bytes);
 		}
-	}
-
-	private void write(String str) {
-		if (str.isEmpty()) {
-			writer.println();
-			return;
-		}
-
-		for (int i = 0; i < indent; i++) {
-			writer.print("\t");
-		}
-
-		writer.println(str);
 	}
 
 	private void finish() {
@@ -139,11 +139,7 @@ public class FasmGenerator extends ScopeBaseListener {
 	public void exitInvoke(InvokeContext ctx) {
 		String ident = ctx.Identifier().getText();
 		if (ident.equals("print")) {
-			String str = ctx.expr().getText();
-			int index = preprocessor.extactedStrings.get(str);
-
-			write("lea rax, [c_" + index + "]");
-			write("mov rdx, c_" + index + ".size");
+			ExprEvaluator.eval(this, ctx.expr(), "rax", "rdx");
 			write("call print");
 		} else {
 			write("call f_" + ident);

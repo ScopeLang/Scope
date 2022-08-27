@@ -42,7 +42,7 @@ declare
 
 // Outer statements
 function
-	: FuncKeyword typeName Identifier '(' ')' codeblock
+	: FuncKeyword typeName Identifier '(' ')' (codeblock | EndLine)
 	;
 
 // Expressions

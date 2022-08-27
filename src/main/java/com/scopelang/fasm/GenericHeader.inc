@@ -1,23 +1,25 @@
 format ELF64 executable 3
 
-; Make all DBs have a size value
 struc db [data] {
 common
 	. db data
 	.size = $ - .
 }
 
+macro movref name, p, s {
+	lea p, [name]
+	mov s, name#.size
+}
+
 segment readable executable
 entry f_main
 
-; Exit procedure
 exit:
 	mov rdi, rax
 	mov rax, 60
 	syscall
 	ret
 
-; Print procedure (stdout)
 print:
 	mov rsi, rax
 	mov rdi, 1
