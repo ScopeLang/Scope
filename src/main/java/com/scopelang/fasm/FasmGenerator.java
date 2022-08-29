@@ -6,31 +6,36 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 
+import org.antlr.v4.runtime.Token;
 import org.apache.commons.io.IOUtils;
 
 import com.scopelang.*;
 import com.scopelang.ScopeParser.*;
 
 public class FasmGenerator extends ScopeBaseListener {
+	private String sourceFile;
 	private String fileName;
 	private PrintWriter writer;
 
 	public Preprocessor preprocessor;
 	public int indent = 0;
+	public boolean errored = false;
+
+	public HashMap<String, Integer> localVariables = new HashMap<>();
 
 	private boolean mainFound = false;
-	private HashMap<String, Integer> localVariables = new HashMap<>();
-	private int localVariableMax = 0;
 
-	public FasmGenerator(String fileName, Preprocessor preprocessor) {
+	public FasmGenerator(String sourceFile, String fileName, Preprocessor preprocessor) {
+		this.sourceFile = sourceFile;
 		this.fileName = fileName;
 		this.preprocessor = preprocessor;
 
 		try {
 			writer = new PrintWriter(fileName);
 		} catch (IOException e) {
-			Utils.log("Could not generate file.");
+			Utils.error("Could not generate file.");
 			e.printStackTrace();
+			Utils.forceExit();
 		}
 	}
 
@@ -43,8 +48,9 @@ public class FasmGenerator extends ScopeBaseListener {
 			InputStream in = getClass().getResourceAsStream("GenericHeader.inc");
 			write(IOUtils.toString(in, StandardCharsets.UTF_8));
 		} catch (IOException e) {
-			Utils.log("Could not insert header.");
+			Utils.error("Could not insert header.");
 			e.printStackTrace();
+			Utils.forceExit();
 		}
 	}
 
@@ -56,10 +62,20 @@ public class FasmGenerator extends ScopeBaseListener {
 		writeStrings();
 
 		if (!mainFound) {
-			Utils.log("Warning! `main` function not found. FASM will crash!");
+			Utils.error("A `main` function was not found.",
+				"Try adding a `main` function like so:",
+				"",
+				"func void main() {",
+				"\tprint(\"Hello, World!\");",
+				"}");
+			errored = true;
 		}
 
 		finish();
+
+		if (errored) {
+			Utils.forceExit();
+		}
 	}
 
 	public void write(String str) {
@@ -91,10 +107,18 @@ public class FasmGenerator extends ScopeBaseListener {
 	}
 
 	private void finish() {
-		Utils.log("Finished writing assembly to `" + fileName + "`.");
+		if (!errored) {
+			Utils.log("Finished writing assembly to `" + fileName + "`.");
+		} else {
+			Utils.log("Finished writing assembly to `" + fileName + "` (with errors).\n");
+		}
 
 		writer.flush();
 		writer.close();
+	}
+
+	public ErrorLoc locationOf(Token token) {
+		return new ErrorLoc(sourceFile, token.getLine(), token.getCharPositionInLine() + 1);
 	}
 
 	@Override
@@ -109,11 +133,11 @@ public class FasmGenerator extends ScopeBaseListener {
 			write("call init");
 		}
 
+		write("call vlist_clear");
 		write("push rbp");
 		write("mov rbp, rsp");
 
 		localVariables.clear();
-		localVariableMax = 0;
 	}
 
 	@Override
@@ -133,21 +157,44 @@ public class FasmGenerator extends ScopeBaseListener {
 		write("");
 	}
 
-	// @Override
-	// public void exitDeclare(DeclareContext ctx) {
-	// String ident = ctx.Identifier().getText();
-	// localVariableMax += 4;
-	// localVariables.put(ident, localVariableMax);
-	// }
+	@Override
+	public void exitDeclare(DeclareContext ctx) {
+		String ident = ctx.Identifier().getText();
+
+		if (localVariables.containsKey(ident)) {
+			Utils.error(locationOf(ctx.Identifier().getSymbol()),
+				"Variable `" + ident + "` was already defined in this scope.",
+				"Try to keep variable names concise and readable.");
+			errored = true;
+			return;
+		}
+
+		localVariables.put(ident, localVariables.size());
+
+		ExprEvaluator.eval(this, ctx.expr());
+		write("call vlist_append");
+	}
 
 	@Override
 	public void exitInvoke(InvokeContext ctx) {
 		String ident = ctx.Identifier().getText();
 		if (ident.equals("print")) {
-			ExprEvaluator.eval(this, ctx.expr(), "rax", "rdx");
+			ExprEvaluator.eval(this, ctx.expr());
 			write("call print");
 		} else if (ident.equals("main")) {
-			Utils.log("`main` cannot be called! Ignoring.");
+			Utils.error(locationOf(ctx.Identifier().getSymbol()),
+				"The `main` function cannot be called manually.",
+				"Try moving the contents of main into a different function",
+				"and calling that instead like so:",
+				"",
+				"func void myNewFunc() {",
+				"\t// The code that *was* in `main`",
+				"}",
+				"",
+				"func void main() {",
+				"\tmyNewFunc();",
+				"}");
+			errored = true;
 		} else {
 			write("call f_" + ident);
 		}

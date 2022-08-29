@@ -18,7 +18,7 @@ public final class Scope {
 		options.addOption(helpOpt);
 
 		var silentOpt = new Option("s", "silent", false,
-				"Won't print anything except for program output if applicable.");
+			"Won't print anything except for program output if applicable.");
 		options.addOption(silentOpt);
 
 		var outputOpt = new Option("o", "output", true, "The output path. The default is `./<inputName>.out`");
@@ -28,7 +28,7 @@ public final class Scope {
 		options.addOption(runOpt);
 
 		var deleteOpt = new Option("d", "delete", false,
-				"Whether or not to delete the compiled program after running. Does not work if `-r` is not set.");
+			"Whether or not to delete the compiled program after running. Does not work if `-r` is not set.");
 		options.addOption(deleteOpt);
 
 		// Parse command line args
@@ -48,7 +48,7 @@ public final class Scope {
 		} else {
 			Utils.disableLog = cmd.hasOption("silent");
 			compileFile(cmd.getArgs()[0], cmd.getOptionValue("output"),
-					cmd.hasOption("run"), cmd.hasOption("delete"));
+				cmd.hasOption("run"), cmd.hasOption("delete"));
 		}
 	}
 
@@ -59,7 +59,7 @@ public final class Scope {
 
 		// Preprocess
 		CommonTokenStream stream = new CommonTokenStream(lexer);
-		Preprocessor preprocessor = new Preprocessor(stream);
+		Preprocessor preprocessor = new Preprocessor(file, stream);
 
 		// Parse
 		ScopeParser parser = new ScopeParser(stream);
@@ -67,7 +67,7 @@ public final class Scope {
 
 		// Generate
 		String asmName = file + ".asm";
-		FasmGenerator generator = new FasmGenerator(asmName, preprocessor);
+		FasmGenerator generator = new FasmGenerator(file, asmName, preprocessor);
 		generator.insertHeader();
 		ParseTreeWalker.DEFAULT.walk(generator, tree);
 		generator.finishGen();
@@ -83,7 +83,7 @@ public final class Scope {
 		try {
 			asmName = generateAsm(file);
 		} catch (Exception e) {
-			Utils.log("Failed to generate file.");
+			Utils.error("Failed to generate file.");
 			e.printStackTrace();
 			return;
 		}

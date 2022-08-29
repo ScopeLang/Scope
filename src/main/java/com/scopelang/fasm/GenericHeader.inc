@@ -21,13 +21,8 @@ common
 	.size = $ - .
 }
 
-macro vlist_getsize o, index {
-	mov o, DWORD [(vlist + 8) + (16 * index)]
-}
-
-macro vlist_getptr o, index {
-	lea o, [(vlist + 8) + (16 * index + 8)] 
-}
+macro vlist_getsize o, index { mov o, DWORD [(vlist + 8) + (16 * index + 0)] }
+macro vlist_getptr  o, index { mov o, QWORD [(vlist + 8) + (16 * index + 8)] }
 
 ; R/W Data ;
 
@@ -66,7 +61,7 @@ package_create:
 	mov rdi, 2 ; R/W
 	mov r10, 2 ; Private map
 	mov r8, -1 ; No file descriptor
-	xor r9, r9  ; No offset
+	xor r9, r9 ; No offset
 	mov rax, 9 ; sys_mmap
 	syscall
 	ret
@@ -78,17 +73,23 @@ package_delete:
 	syscall
 	ret
 
-; args: rdi size, rsi ptr
+; args: rdi ptr, rsi size
 ; ret: rax index
 vlist_append:
 	mov rax, QWORD [vlist] ; endptr
-	mov [rax], rdi
-	mov [rax + 8], rsi
+	mov [rax], rsi
+	mov [rax + 8], rdi
 	
 	; Get index
-	lea rdi, [vlist]
-	sub rax, rdi
+	lea rsi, [vlist]
+	sub rax, rsi
 	shr rax, 4 ; Divide by 16
 	
 	add QWORD [vlist], 16
+	ret
+
+vlist_clear:
+	; Move endptr back to the start
+	lea rax, [vlist + 8]
+	mov QWORD[vlist], rax
 	ret

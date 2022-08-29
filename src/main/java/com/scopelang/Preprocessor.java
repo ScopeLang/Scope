@@ -5,16 +5,27 @@ import java.util.HashMap;
 import org.antlr.v4.runtime.*;
 
 public class Preprocessor {
+	private String sourceFile;
 	private CommonTokenStream stream;
 
+	public boolean errored = false;
 	public HashMap<String, Integer> extactedStrings;
 
-	public Preprocessor(CommonTokenStream tokenStream) {
+	public Preprocessor(String sourceFile, CommonTokenStream tokenStream) {
+		this.sourceFile = sourceFile;
 		stream = tokenStream;
 
 		extactedStrings = new HashMap<String, Integer>();
 
 		preprocess();
+
+		if (errored) {
+			Utils.forceExit();
+		}
+	}
+
+	public ErrorLoc locationOf(Token token) {
+		return new ErrorLoc(sourceFile, token.getLine(), token.getCharPositionInLine() + 1);
 	}
 
 	private void preprocess() {
@@ -23,6 +34,14 @@ public class Preprocessor {
 			Token token = stream.get(i);
 			if (token.getType() == ScopeLexer.StringLiteral) {
 				String str = token.getText();
+
+				// If empty string
+				if (str.equals("\"\"")) {
+					Utils.error(locationOf(token), "Empty string literals are not allowed.",
+						"Consider using `null` instead.");
+					errored = true;
+				}
+
 				int index = extactedStrings.size();
 				extactedStrings.put(str, index);
 			}
