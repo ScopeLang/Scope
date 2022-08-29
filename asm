@@ -1,9 +1,7 @@
 #!/bin/bash
 
-fasm $1 _temp
-chmod +x _temp
+fasm $1 _temp.out
+chmod +x _temp.out
 
-./_temp
+./_temp.out
 echo Exited with: $?
-
-rm _temp

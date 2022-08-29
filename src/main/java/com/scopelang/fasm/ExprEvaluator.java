@@ -20,7 +20,8 @@ public final class ExprEvaluator {
 			String str = ctx.StringLiteral().getText();
 			int index = g.preprocessor.extactedStrings.get(str);
 
-			g.write("movref c_" + index + ", " + ptr + ", " + size);
+			g.write("lea rdi, [c_" + index + "]");
+			g.write("mov rsi, c_" + index + ".size");
 		}
 	}
 }

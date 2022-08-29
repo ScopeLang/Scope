@@ -49,6 +49,8 @@ public class FasmGenerator extends ScopeBaseListener {
 	}
 
 	public void finishGen() {
+		write("; Constant Data ;");
+		write("");
 		write("segment readable");
 		write("");
 		writeStrings();
@@ -98,12 +100,15 @@ public class FasmGenerator extends ScopeBaseListener {
 	@Override
 	public void enterFunction(FunctionContext ctx) {
 		String ident = ctx.Identifier().getText();
-		if (ident.equals("main")) {
-			mainFound = true;
-		}
 
 		write("f_" + ident + ":");
 		indent++;
+
+		if (ident.equals("main")) {
+			mainFound = true;
+			write("call init");
+		}
+
 		write("push rbp");
 		write("mov rbp, rsp");
 
@@ -118,7 +123,7 @@ public class FasmGenerator extends ScopeBaseListener {
 		// Add program exit if main func, return otherwise
 		String ident = ctx.Identifier().getText();
 		if (ident.equals("main")) {
-			write("mov rax, 0");
+			write("mov rdi, 0");
 			write("call exit");
 		} else {
 			write("ret");
@@ -141,6 +146,8 @@ public class FasmGenerator extends ScopeBaseListener {
 		if (ident.equals("print")) {
 			ExprEvaluator.eval(this, ctx.expr(), "rax", "rdx");
 			write("call print");
+		} else if (ident.equals("main")) {
+			Utils.log("`main` cannot be called! Ignoring.");
 		} else {
 			write("call f_" + ident);
 		}
