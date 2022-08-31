@@ -4,6 +4,8 @@ import java.util.HashMap;
 
 import org.antlr.v4.runtime.*;
 
+import com.scopelang.error.ErrorLoc;
+
 public class Preprocessor {
 	private String sourceFile;
 	private CommonTokenStream stream;

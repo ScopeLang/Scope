@@ -4,6 +4,7 @@ import org.antlr.v4.runtime.*;
 import org.antlr.v4.runtime.tree.*;
 import org.apache.commons.cli.*;
 
+import com.scopelang.error.ErrorHandler;
 import com.scopelang.fasm.FasmGenerator;
 
 public final class Scope {
@@ -53,17 +54,31 @@ public final class Scope {
 	}
 
 	public static String generateAsm(String file) throws Exception {
+		var errorHandler = new ErrorHandler(file);
+
 		// Lex
 		CharStream inputStream = CharStreams.fromFileName(file);
 		ScopeLexer lexer = new ScopeLexer(inputStream);
+		lexer.removeErrorListener(ConsoleErrorListener.INSTANCE);
+		lexer.addErrorListener(errorHandler);
 
 		// Preprocess
 		CommonTokenStream stream = new CommonTokenStream(lexer);
 		Preprocessor preprocessor = new Preprocessor(file, stream);
 
+		if (errorHandler.errored) {
+			Utils.forceExit();
+		}
+
 		// Parse
 		ScopeParser parser = new ScopeParser(stream);
+		parser.removeErrorListener(ConsoleErrorListener.INSTANCE);
+		parser.addErrorListener(errorHandler);
 		ParseTree tree = parser.program();
+
+		if (errorHandler.errored) {
+			Utils.forceExit();
+		}
 
 		// Generate
 		String asmName = file + ".asm";

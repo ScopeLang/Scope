@@ -1,4 +1,4 @@
-package com.scopelang;
+package com.scopelang.error;
 
 public class ErrorLoc {
 	public String file;

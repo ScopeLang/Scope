@@ -5,6 +5,8 @@ import java.util.Arrays;
 
 import org.apache.commons.text.StringEscapeUtils;
 
+import com.scopelang.error.ErrorLoc;
+
 public final class Utils {
 	public static boolean disableLog = false;
 
@@ -59,7 +61,7 @@ public final class Utils {
 	}
 
 	public static void error(String str, String... extra) {
-		System.err.println("\033[1;91mERROR: \033[0;1m" + str);
+		System.err.println("\033[1;91mERROR: \033[0;1m" + str + "\033[0m");
 		for (String s : extra) {
 			System.err.println("\033[1;91m   | \033[0;2m" + s + "\033[0m");
 		}
