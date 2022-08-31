@@ -1,4 +1,5 @@
 format ELF64 executable 3
+use64
 
 ; Help ;
 

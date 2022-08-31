@@ -8,28 +8,19 @@ public final class ExprEvaluator {
 	}
 
 	public static void eval(FasmGenerator g, ExprContext ctx) {
-		if (ctx.literals() != null) {
-			evalLiteral(g, ctx.literals());
-		} else if (ctx.Identifier() != null) {
-			int id = g.localVariables.get(ctx.Identifier().getText());
-			g.write("vlist_getptr rdi, " + id);
-			g.write("vlist_getsize esi, " + id);
+		if (ctx.atom() != null) {
+			// Handle atoms (variables, literals)
+			AtomEvaluator.eval(g, ctx.atom());
+		} else if (ctx.start.getText() == "(" && ctx.stop.getText() == ")") {
+			// Handle parens
+			eval(g, ctx.expr(0));
 		} else {
 			Utils.error("Unhandled expression node.", "This is probably not your fault.");
 			g.errored = true;
 		}
 	}
 
-	private static void evalLiteral(FasmGenerator g, LiteralsContext ctx) {
-		if (ctx.StringLiteral() != null) {
-			String str = ctx.StringLiteral().getText();
-			int index = g.preprocessor.extactedStrings.get(str);
+	private static void evalOperator(FasmGenerator g, LiteralsContext ctx) {
 
-			g.write("lea rdi, [c_" + index + "]");
-			g.write("mov rsi, c_" + index + ".size");
-		} else {
-			Utils.error("Unhandled literal node.", "This is probably not your fault.");
-			g.errored = true;
-		}
 	}
 }

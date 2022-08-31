@@ -47,6 +47,13 @@ function
 
 // Expressions
 expr
+	: expr '^' expr
+	| expr ('*' | '/') expr
+	| expr ('+' | '-') expr
+	| '(' expr ')'
+	| atom
+	;
+atom
 	: literals
 	| Identifier
 	;
