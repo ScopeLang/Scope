@@ -126,6 +126,7 @@ public class FasmGenerator extends ScopeBaseListener {
 	public void enterFunction(FunctionContext ctx) {
 		String ident = ctx.Identifier().getText();
 
+		write(";@FUNC," + ctx.Identifier().getSymbol().getLine());
 		write("f_" + ident + ":");
 		indent++;
 
@@ -134,15 +135,17 @@ public class FasmGenerator extends ScopeBaseListener {
 			write("call init");
 		}
 
-		write("call vlist_clear");
 		write("push rbp");
 		write("mov rbp, rsp");
+		write("push QWORD [vlist]");
 
 		localVariables.clear();
 	}
 
 	@Override
 	public void exitFunction(FunctionContext ctx) {
+		write("pop rax");
+		write("mov QWORD [vlist], rax");
 		write("pop rbp");
 
 		// Add program exit if main func, return otherwise

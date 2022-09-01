@@ -88,9 +88,3 @@ vlist_append:
 	
 	add QWORD [vlist], 16
 	ret
-
-vlist_clear:
-	; Move endptr back to the start
-	lea rax, [vlist + 8]
-	mov QWORD[vlist], rax
-	ret

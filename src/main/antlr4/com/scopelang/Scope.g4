@@ -1,5 +1,4 @@
-grammar Scope
-	;
+grammar Scope;
 
 // ================ //
 // ==== Parser ==== //
@@ -48,7 +47,7 @@ function
 // Expressions
 expr
 	: expr '^' expr
-	| expr ('*' | '/') expr
+	| expr ('*' | '/' | '%') expr
 	| expr ('+' | '-') expr
 	| '(' expr ')'
 	| atom
@@ -67,21 +66,28 @@ literals
 // ==== Lexer ==== //
 // =============== //
 
+// Symbols
+LeftParen: '(';
+RightParen: ')';
+LeftBracket: '[';
+RightBracket: ']';
+LeftBrace: '{';
+RightBrace: '}';
+Assign: '=';
+Pow: '^';
+Mul: '*';
+Div: '/';
+Add: '+';
+Sub: '-';
+Mod: '%';
+
 // Keywords
-FuncKeyword
-	: 'func'
-	;
+FuncKeyword: 'func';
 
 // Primitive types
-VoidType
-	: 'void'
-	;
-IntType
-	: 'int'
-	;
-StringType
-	: 'string'
-	;
+VoidType: 'void';
+IntType: 'int';
+StringType: 'string';
 
 // Literals
 IntLiteral
