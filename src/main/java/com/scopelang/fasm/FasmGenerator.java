@@ -45,9 +45,28 @@ public class FasmGenerator extends ScopeBaseListener {
 
 		indent = 0;
 		write("; Generated to `" + fileName + "` at " + date);
+		write("");
+		write(";@FILE,ELF64," + fileName);
 		try {
+			// Split `GenericHeader.inc`
 			InputStream in = getClass().getResourceAsStream("GenericHeader.inc");
-			write(IOUtils.toString(in, StandardCharsets.UTF_8));
+			String[] file = IOUtils.toString(in, StandardCharsets.UTF_8).split(System.lineSeparator());
+
+			// Remove comments and write
+			for (String str : file) {
+				int commentIndex = str.indexOf(";");
+				if (commentIndex == -1) {
+					write(str);
+				} else {
+					String s = str.substring(0, commentIndex);
+					if (s.length() > 0) {
+						write(s);
+					}
+				}
+			}
+
+			// Write padding
+			write("");
 		} catch (IOException e) {
 			Utils.error("Could not insert header.");
 			e.printStackTrace();
@@ -56,8 +75,6 @@ public class FasmGenerator extends ScopeBaseListener {
 	}
 
 	public void finishGen() {
-		write("; Constant Data ;");
-		write("");
 		write("segment readable");
 		write("");
 		writeStrings();
@@ -79,19 +96,6 @@ public class FasmGenerator extends ScopeBaseListener {
 		}
 	}
 
-	public void write(String str) {
-		if (str.isEmpty()) {
-			writer.println();
-			return;
-		}
-
-		for (int i = 0; i < indent; i++) {
-			writer.print("\t");
-		}
-
-		writer.println(str);
-	}
-
 	private void writeStrings() {
 		for (var entry : preprocessor.extactedStrings.entrySet()) {
 			String name = "c_" + entry.getValue();
@@ -103,8 +107,22 @@ public class FasmGenerator extends ScopeBaseListener {
 			}
 			bytes = bytes.substring(0, bytes.length() - 2);
 
+			write(";@STR," + str.length());
 			write(name + " db " + bytes);
 		}
+	}
+
+	public void write(String str) {
+		if (str.isEmpty()) {
+			writer.println();
+			return;
+		}
+
+		for (int i = 0; i < indent; i++) {
+			writer.print("\t");
+		}
+
+		writer.println(str);
 	}
 
 	private void finish() {

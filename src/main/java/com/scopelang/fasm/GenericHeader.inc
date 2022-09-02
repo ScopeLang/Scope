@@ -2,20 +2,20 @@ format ELF64 executable 3
 use64
 
 ; Help ;
-
+;
 ; Return    : rax
 ; Arguments : rdi, rsi, rdx, rcx, r8, r9, r10, r11
-
+;
 ; VList      : | ENDPTR (8) | ELEM (16)... |
 ; VList elem : | SIZE (4) | PADDING (4) | PTR (8) |
-
+;
 ; Settings ;
-
+;
 PACKAGE_SIZE = 8192
 VLIST_SIZE = 8 + 16 * 1024 ; end + size * len
 
 ; Macros ;
-
+;
 struc db [data] {
 common
 	. db data
@@ -26,13 +26,13 @@ macro vlist_getsize o, index { mov o, DWORD [(vlist + 8) + (16 * index + 0)] }
 macro vlist_getptr  o, index { mov o, QWORD [(vlist + 8) + (16 * index + 8)] }
 
 ; R/W Data ;
-
+;
 segment readable writable
 
 vlist rb VLIST_SIZE
 
 ; Code ;
-
+;
 segment readable executable
 entry f_main
 

@@ -107,7 +107,7 @@ public final class Scope {
 		if (outputName == null) {
 			outputName = asmName.split("\\.")[0] + ".out";
 		}
-		Utils.runCmdAndWait("rm", "-f", outputName);
+		Utils.runCmdAndWait("rm", "-f", "\"" + outputName + "\"");
 
 		// Generate executable
 		Utils.log("\n\033[0;32m== Compiling ==\033[0m\n");
@@ -136,7 +136,7 @@ public final class Scope {
 		if (!delete) {
 			return;
 		}
-		Utils.runCmd("rm", "-f", asmName);
-		Utils.runCmd("rm", "-f", outputName);
+		Utils.runCmd("rm", "-f", "\"" + asmName + "\"");
+		Utils.runCmd("rm", "-f", "\"" + outputName + "\"");
 	}
 }
