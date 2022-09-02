@@ -1,12 +1,18 @@
 <img src="img/Scope.svg" alt="Scope Logo"/>
 
-*Scope* is still under development. It will be a compiled, object-oriented programming langauge.
+*Scope* is still under development and is not ready for use.
+It will be object-oriented programming langauge that compiles into [`FASM`](https://flatassembler.net/) and then into an executable.
+
+> **Warning**
+>
+> Scope currently only works on Linux. Other platforms are planned.
 
 ## Building
 
-These dependencies are required to build:
+These dependencies are required to build and run the compiler:
 - `java`
 - `maven`
+- `fasm`
 
 After these are installed, run:
 
@@ -15,18 +21,16 @@ After these are installed, run:
 $ git clone https://github.com/EliteAsian123/Scope.git
 # Build...
 $ mvn package
-# That is it! Make sure to check `Running / (YOUR OS)`
 ```
-
-## Running / Linux
-
-`fasm` is required to run a Scope program.
-`fasm` can be installed with `sudo apt install fasm`.
-
+You can then use the `./scope` bash script to build a Scope program in the `./env/` like so:
 ```bash
-$ ./scope <file>
+$ ./scope HelloWorld.scope --silent --run --delete
+```
+You can also just directly use the `./target/scopelang-1.0-jar-with-dependencies.jar` file like so:
+```bash
+$ java -jar target/scopelang-1.0-jar-with-dependencies.jar env/HelloWorld.scope --silent --run --delete
 ```
 
 ## Why Java? ☕
 
-Don't know.
+ANTLR is in Java so Scope is in Java.
