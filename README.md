@@ -18,7 +18,7 @@ After these are installed, run:
 
 ```bash
 # Clone...
-$ git clone https://github.com/EliteAsian123/Scope.git
+$ git clone https://github.com/ScopeLang/Scope.git
 # Build...
 $ mvn package
 ```
