@@ -25,6 +25,9 @@ common
 macro vlist_getsize o, index { mov o, DWORD [(vlist + 8) + (16 * index + 0)] }
 macro vlist_getptr  o, index { mov o, QWORD [(vlist + 8) + (16 * index + 8)] }
 
+macro push [i] { push i }
+macro pop  [i] { pop  i }
+
 ; R/W Data ;
 ;
 segment readable writable
@@ -52,18 +55,18 @@ exit:
 
 ; args: rdi ptr, rsi size
 print:
+	push rdx, rsi, rdi
 	mov rdx, rsi ; Count
 	mov rsi, rdi ; Buffer
 	mov rdi, 1   ; stdout
 	mov rax, 1   ; sys_write
 	syscall
+	pop rdi, rsi, rdx
 	ret
 
 ; args: rdi from, rsi to, rdx size
 copy:
-	push rsi
-	push rdi
-	push rdx
+	push rsi, rdi, rdx
 	add rdx, rdi
 	inc rdx
 	.l:
@@ -73,14 +76,13 @@ copy:
 		inc rsi
 		cmp rdi, rdx
 		jl .l
-	pop rdx
-	pop rdi
-	pop rsi
+	pop rdx, rdi, rsi
 	ret
 
 ; args: rdi ptr0, rsi size0, rdx ptr1, rcx size1
 ; ret: rdi ptr, rsi size
 concat:
+	push rdx
 	push rdx
 	mov rdx, rsi
 	mov rsi, QWORD [curpkg]
@@ -93,10 +95,12 @@ concat:
 	sub rsi, rdi
 	add rsi, rdx
 	add QWORD [curpkg], rsi
+	pop rdx
 	ret
 
 ; ret: rax ptr
 package_create:
+	push rdi, rsi, rdx, r10, r8, r9
 	xor rdi, rdi
 	mov rsi, PACKAGE_SIZE ; Map size
 	mov rdx, 0x02 ; R/W
@@ -105,18 +109,22 @@ package_create:
 	xor r9, r9 ; No offset
 	mov rax, 9 ; sys_mmap
 	syscall
+	pop r9, r8, r10, rdx, rsi, rdi
 	ret
 
 ; args: rdi ptr
 package_delete:
+	push rsi
 	mov rsi, PACKAGE_SIZE ; Map size
 	mov rax, 11 ; sys_munmap
 	syscall
+	pop rsi
 	ret
 
 ; args: rdi ptr, rsi size
 ; ret: rax index
 vlist_append:
+	push rsi
 	mov rax, QWORD [vlist] ; endptr
 	mov [rax], rsi
 	mov [rax + 8], rdi
@@ -124,4 +132,5 @@ vlist_append:
 	sub rax, rsi
 	shr rax, 4 ; Divide by 16
 	add QWORD [vlist], 16
+	pop rsi
 	ret

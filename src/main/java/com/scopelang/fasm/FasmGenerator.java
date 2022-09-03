@@ -48,8 +48,8 @@ public class FasmGenerator extends ScopeBaseListener {
 		write("");
 		write(";@FILE,ELF64," + fileName);
 		try {
-			// Split `GenericHeader.inc`
-			InputStream in = getClass().getResourceAsStream("GenericHeader.inc");
+			// Split header
+			InputStream in = getClass().getResourceAsStream("files/headers/ELF64.inc");
 			String[] file = IOUtils.toString(in, StandardCharsets.UTF_8).split(System.lineSeparator());
 
 			// Remove comments and write
