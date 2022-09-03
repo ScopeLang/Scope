@@ -58,9 +58,10 @@ print:
 
 ; ret: rax ptr
 package_create:
+	xor rdi, rdi
 	mov rsi, PACKAGE_SIZE ; Map size
-	mov rdi, 2 ; R/W
-	mov r10, 2 ; Private map
+	mov rdx, 0x02 ; R/W
+	mov r10, 0x22 ; Private map + Anonymous
 	mov r8, -1 ; No file descriptor
 	xor r9, r9 ; No offset
 	mov rax, 9 ; sys_mmap
