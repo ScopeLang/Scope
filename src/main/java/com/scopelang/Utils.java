@@ -1,9 +1,10 @@
 package com.scopelang;
 
-import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.*;
+import java.util.stream.Stream;
 
 import org.apache.commons.text.StringEscapeUtils;
+import org.apache.commons.text.similarity.LevenshteinDistance;
 
 import com.scopelang.error.ErrorLoc;
 
@@ -17,6 +18,20 @@ public final class Utils {
 		String out = str.substring(1, str.length() - 1);
 		out = StringEscapeUtils.unescapeJson(out);
 		return out;
+	}
+
+	public static String closestMatch(String v, Stream<String> possibleValues) {
+		var compare = new Comparator<String>() {
+			@Override
+			public int compare(String n1, String n2) {
+				var l = LevenshteinDistance.getDefaultInstance();
+				int a = l.apply(n1, v);
+				int b = l.apply(n2, v);
+				return Integer.compare(a, b);
+			}
+		};
+
+		return possibleValues.min(compare).orElse(null);
 	}
 
 	public static Process runCmd(String... cmd) {
