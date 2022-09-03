@@ -4,10 +4,6 @@ import com.scopelang.Utils;
 import com.scopelang.ScopeParser.*;
 
 public final class ExprEvaluator {
-	private enum Operator {
-		POW, MUL, DIV, ADD, SUB, MOD, NONE
-	}
-
 	private ExprEvaluator() {
 	}
 
@@ -21,8 +17,8 @@ public final class ExprEvaluator {
 			eval(g, ctx.expr(0));
 			return;
 		} else {
-			var op = getOperator(ctx);
-			if (op != Operator.NONE) {
+			// Handle operators
+			if (evalOperator(g, ctx)) {
 				return;
 			}
 		}
@@ -31,21 +27,27 @@ public final class ExprEvaluator {
 		g.errored = true;
 	}
 
-	private static Operator getOperator(ExprContext ctx) {
+	private static boolean evalOperator(FasmGenerator g, ExprContext ctx) {
 		if (ctx.Pow() != null) {
-			return Operator.POW;
+			// return Operator.POW;
 		} else if (ctx.Mul() != null) {
-			return Operator.MUL;
+			// return Operator.MUL;
 		} else if (ctx.Div() != null) {
-			return Operator.DIV;
+			// return Operator.DIV;
 		} else if (ctx.Add() != null) {
-			return Operator.ADD;
+			eval(g, ctx.expr(1));
+			g.write("mov rdx, rdi");
+			g.write("mov rcx, rsi");
+			eval(g, ctx.expr(0));
+			g.write("call concat");
+
+			return true;
 		} else if (ctx.Sub() != null) {
-			return Operator.SUB;
+			// return Operator.SUB;
 		} else if (ctx.Mod() != null) {
-			return Operator.MOD;
+			// return Operator.MOD;
 		}
 
-		return Operator.NONE;
+		return false;
 	}
 }

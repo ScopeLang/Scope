@@ -30,6 +30,7 @@ macro vlist_getptr  o, index { mov o, QWORD [(vlist + 8) + (16 * index + 8)] }
 segment readable writable
 
 vlist rb VLIST_SIZE
+curpkg rb 8
 
 ; Code ;
 ;
@@ -39,6 +40,8 @@ entry f_main
 init:
 	lea rax, [vlist + 8]
 	mov QWORD [vlist], rax
+	call package_create
+	mov QWORD [curpkg], rax
 	ret
 
 ; args: rdi code
@@ -54,6 +57,42 @@ print:
 	mov rdi, 1   ; stdout
 	mov rax, 1   ; sys_write
 	syscall
+	ret
+
+; args: rdi from, rsi to, rdx size
+copy:
+	push rsi
+	push rdi
+	push rdx
+	add rdx, rdi
+	inc rdx
+	.l:
+		mov al, BYTE [rdi]
+		mov BYTE [rsi], al
+		inc rdi
+		inc rsi
+		cmp rdi, rdx
+		jl .l
+	pop rdx
+	pop rdi
+	pop rsi
+	ret
+
+; args: rdi ptr0, rsi size0, rdx ptr1, rcx size1
+; ret: rdi ptr, rsi size
+concat:
+	push rdx
+	mov rdx, rsi
+	mov rsi, QWORD [curpkg]
+	call copy
+	add rsi, rdx
+	pop rdi
+	mov rdx, rcx
+	call copy
+	mov rdi, QWORD [curpkg]
+	sub rsi, rdi
+	add rsi, rdx
+	add QWORD [curpkg], rsi
 	ret
 
 ; ret: rax ptr
@@ -81,11 +120,8 @@ vlist_append:
 	mov rax, QWORD [vlist] ; endptr
 	mov [rax], rsi
 	mov [rax + 8], rdi
-	
-	; Get index
 	lea rsi, [vlist]
 	sub rax, rsi
 	shr rax, 4 ; Divide by 16
-	
 	add QWORD [vlist], 16
 	ret
