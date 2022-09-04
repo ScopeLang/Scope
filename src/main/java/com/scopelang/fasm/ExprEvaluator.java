@@ -36,9 +36,9 @@ public final class ExprEvaluator {
 			// return Operator.DIV;
 		} else if (ctx.Add() != null) {
 			eval(g, ctx.expr(1));
-			g.write("mov rdx, rdi");
-			g.write("mov rcx, rsi");
+			g.write("push rdi, rsi");
 			eval(g, ctx.expr(0));
+			g.write("pop rcx, rdx");
 			g.write("call concat");
 
 			return true;

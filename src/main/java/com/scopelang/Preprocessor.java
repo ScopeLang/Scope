@@ -44,6 +44,11 @@ public class Preprocessor {
 					errored = true;
 				}
 
+				// If exists, skip
+				if (extactedStrings.containsKey(str)) {
+					continue;
+				}
+
 				int index = extactedStrings.size();
 				extactedStrings.put(str, index);
 			}
