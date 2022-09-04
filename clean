@@ -1,0 +1,6 @@
+#!/bin/bash
+
+cd env/$@
+find . -name "*.scope.inc" -type f -delete
+find . -name "*.scope.asm" -type f -delete
+find . -name "*.out" -type f -delete

@@ -44,10 +44,11 @@ public final class AtomEvaluator {
 	private static void evalLiteral(FasmGenerator g, LiteralsContext ctx) {
 		if (ctx.StringLiteral() != null) {
 			String str = ctx.StringLiteral().getText();
-			int index = g.preprocessor.extactedStrings.get(str);
+			int index = g.tokenProcessor.extactedStrings.get(str);
 
-			g.write("lea rdi, [c_" + index + "]");
-			g.write("mov rsi, c_" + index + ".size");
+			String name = "s_" + g.md5 + "_" + index;
+			g.write("lea rdi, [" + name + "]");
+			g.write("mov rsi, " + name + ".size");
 		} else {
 			Utils.error("Unhandled literal node.", "This is probably not your fault.");
 			g.errored = true;

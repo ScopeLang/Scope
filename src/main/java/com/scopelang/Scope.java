@@ -1,8 +1,11 @@
 package com.scopelang;
 
+import java.io.File;
+
 import org.antlr.v4.runtime.*;
 import org.antlr.v4.runtime.tree.*;
 import org.apache.commons.cli.*;
+import org.apache.commons.io.FilenameUtils;
 
 import com.scopelang.error.ErrorHandler;
 import com.scopelang.fasm.FasmGenerator;
@@ -33,10 +36,6 @@ public final class Scope {
 		var runOpt = new Option("r", "run", false, "Whether or not to run the compiled program.");
 		options.addOption(runOpt);
 
-		var deleteOpt = new Option("d", "delete", false,
-			"Whether or not to delete the compiled program after running. Does not work if `-r` is not set.");
-		options.addOption(deleteOpt);
-
 		// Parse command line args
 		CommandLineParser parser = new DefaultParser();
 		HelpFormatter formatter = new HelpFormatter();
@@ -52,12 +51,13 @@ public final class Scope {
 		if (cmd.hasOption("help") || cmd.getArgs().length != 1) {
 			formatter.printHelp("scope <file>", options);
 		} else {
+			String file = new File(cmd.getArgs()[0]).getAbsolutePath();
 			Utils.disableLog = cmd.hasOption("silent");
 			if (cmd.hasOption("library")) {
 				try {
 					Utils.log("Use `-s` or `--silent` to prevent output.");
 					Utils.log("\n\033[0;32m== Generating ASM ==\033[0m\n");
-					generateAsm(cmd.getArgs()[0], true);
+					generateAsm(file, true);
 					Utils.log("");
 				} catch (Exception e) {
 					Utils.error("Failed to generate file.");
@@ -65,7 +65,7 @@ public final class Scope {
 					return;
 				}
 			} else {
-				compileFile(cmd.getArgs()[0], cmd.getOptionValue("output"),
+				compileFile(file, cmd.getOptionValue("output"),
 					cmd.hasOption("run"), cmd.hasOption("delete"));
 			}
 		}
@@ -74,19 +74,26 @@ public final class Scope {
 	public static String generateAsm(String file, boolean libraryMode) throws Exception {
 		var errorHandler = new ErrorHandler(file);
 
-		// Lex
-		CharStream inputStream = CharStreams.fromFileName(file);
-		ScopeLexer lexer = new ScopeLexer(inputStream);
-		lexer.removeErrorListener(ConsoleErrorListener.INSTANCE);
-		lexer.addErrorListener(errorHandler);
-
 		// Preprocess
-		CommonTokenStream stream = new CommonTokenStream(lexer);
-		Preprocessor preprocessor = new Preprocessor(file, stream);
+		Preprocessor preprocessor = new Preprocessor(file);
 
 		if (errorHandler.errored) {
 			Utils.forceExit();
 		}
+
+		// Lex
+		CharStream inputStream = CharStreams.fromString(preprocessor.get());
+		ScopeLexer lexer = new ScopeLexer(inputStream);
+		lexer.removeErrorListener(ConsoleErrorListener.INSTANCE);
+		lexer.addErrorListener(errorHandler);
+
+		if (errorHandler.errored) {
+			Utils.forceExit();
+		}
+
+		// Token process
+		CommonTokenStream stream = new CommonTokenStream(lexer);
+		TokenProcessor tokenProcessor = new TokenProcessor(file, stream);
 
 		// Parse
 		ScopeParser parser = new ScopeParser(stream);
@@ -101,7 +108,7 @@ public final class Scope {
 		// Generate
 		String asmName = file;
 		asmName += libraryMode ? ".inc" : ".asm";
-		FasmGenerator generator = new FasmGenerator(file, asmName, preprocessor, libraryMode);
+		FasmGenerator generator = new FasmGenerator(file, asmName, tokenProcessor, preprocessor, libraryMode);
 		generator.insertHeader();
 		ParseTreeWalker.DEFAULT.walk(generator, tree);
 		generator.finishGen();
@@ -122,16 +129,23 @@ public final class Scope {
 			return;
 		}
 
-		// Delete old executable (if exists)
+		// Get the name of the output
 		if (outputName == null) {
-			outputName = asmName.split("\\.")[0] + ".out";
+			outputName = FilenameUtils.removeExtension(file) + ".out";
 		}
-		Utils.runCmdAndWait("rm", "-f", "\"" + outputName + "\"");
 
 		// Generate executable
 		Utils.log("\n\033[0;32m== Compiling ==\033[0m\n");
 		Utils.runCmdAndWait("fasm", asmName, outputName);
 		Utils.runCmdAndWait("chmod", "+x", outputName);
+
+		// If the file wasn't generated (i.e. FASM errored), exit
+		if (!new File(outputName).exists()) {
+			Utils.log("");
+			Utils.forceExit();
+			return;
+		}
+
 		Utils.log("Finished compiling to `" + outputName + "`.");
 
 		if (!run) {
@@ -142,7 +156,7 @@ public final class Scope {
 		// Run executable
 		Utils.log("\n\033[0;32m== Running ==\033[0m\n");
 		long startTime = System.currentTimeMillis();
-		int exitCode = Utils.runCmdAndWait(true, "./" + outputName);
+		int exitCode = Utils.runCmdAndWait(true, outputName);
 		long endTime = System.currentTimeMillis();
 
 		// Print stats
@@ -150,12 +164,5 @@ public final class Scope {
 		Utils.log("Exit code: " + exitCode);
 		Utils.log("Time: ~" + (endTime - startTime) + "ms");
 		Utils.log("");
-
-		// Delete
-		if (!delete) {
-			return;
-		}
-		Utils.runCmd("rm", "-f", asmName);
-		Utils.runCmd("rm", "-f", outputName);
 	}
 }

@@ -1,8 +1,10 @@
 package com.scopelang;
 
+import java.io.*;
 import java.util.*;
 import java.util.stream.Stream;
 
+import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.text.StringEscapeUtils;
 import org.apache.commons.text.similarity.LevenshteinDistance;
 
@@ -32,6 +34,15 @@ public final class Utils {
 		};
 
 		return possibleValues.min(compare).orElse(null);
+	}
+
+	public static String hashOf(String fileName) {
+		try {
+			return DigestUtils.md5Hex(new FileInputStream(new File(fileName)));
+		} catch (Exception e) {
+			e.printStackTrace();
+			return null;
+		}
 	}
 
 	public static Process runCmd(String... cmd) {

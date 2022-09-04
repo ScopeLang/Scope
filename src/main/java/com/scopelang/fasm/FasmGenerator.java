@@ -19,22 +19,29 @@ public class FasmGenerator extends ScopeBaseListener {
 	private PrintWriter writer;
 	private boolean libraryMode;
 
+	public TokenProcessor tokenProcessor;
 	public Preprocessor preprocessor;
 	public int indent = 0;
 	public boolean errored = false;
+	public String md5 = null;
 
 	public HashMap<String, Integer> localVariables = new HashMap<>();
 
 	private boolean mainFound = false;
+	private String stringAppend = "";
 
-	public FasmGenerator(String sourceFile, String fileName, Preprocessor preprocessor, boolean libraryMode) {
+	public FasmGenerator(String sourceFile, String fileName, TokenProcessor tokenProcessor, Preprocessor preprocessor,
+		boolean libraryMode) {
+
 		this.sourceFile = sourceFile;
 		this.fileName = fileName;
+		this.tokenProcessor = tokenProcessor;
 		this.preprocessor = preprocessor;
 		this.libraryMode = libraryMode;
 
 		try {
 			writer = new PrintWriter(fileName);
+			md5 = Utils.hashOf(sourceFile);
 		} catch (IOException e) {
 			Utils.error("Could not generate file.");
 			e.printStackTrace();
@@ -46,16 +53,18 @@ public class FasmGenerator extends ScopeBaseListener {
 		String date = DateTimeFormatter.ofPattern("yyyy/MM/dd hh:mm:ss a").format(LocalDateTime.now());
 
 		indent = 0;
-		write("; Generated to `" + fileName + "` at " + date);
+		write("; Generated at " + date);
 		write("");
 
 		if (libraryMode) {
-			write(";@FILE,LIB," + sourceFile);
+			write(";@FILE,LIB," + md5 + "," + sourceFile);
+			writeImportMeta();
 			write("");
+			write(";@SEG_CODE");
 			return;
 		}
 
-		write(";@FILE,ELF64," + sourceFile);
+		write(";@FILE,ELF64," + md5 + "," + sourceFile);
 		try {
 			// Split header
 			InputStream in = getClass().getResourceAsStream("files/headers/ELF64.inc");
@@ -80,6 +89,10 @@ public class FasmGenerator extends ScopeBaseListener {
 			Utils.error("Could not insert header.");
 			e.printStackTrace();
 			Utils.forceExit();
+		}
+
+		if (!libraryMode) {
+			writeImports();
 		}
 	}
 
@@ -115,9 +128,47 @@ public class FasmGenerator extends ScopeBaseListener {
 		}
 	}
 
+	private void writeImportMeta() {
+		for (var file : preprocessor.importedFiles) {
+			write(";@IMPORT," + Utils.hashOf(file) + "," + file);
+		}
+	}
+
+	private void writeImports() {
+		for (var file : preprocessor.importedFiles) {
+			String text;
+			try {
+				var s = new BufferedInputStream(new FileInputStream(file + ".inc"));
+				text = IOUtils.toString(s, StandardCharsets.UTF_8);
+			} catch (Exception e) {
+				// Needed files should've been generated.
+				Utils.error("Unreachable");
+				e.printStackTrace();
+				Utils.forceExit();
+				return;
+			}
+
+			// Append to constants
+			stringAppend += text.substring(text.indexOf(";@SEG_READ") + 10, text.length()).trim();
+
+			// Get the section of code
+			int start = text.indexOf(";@SEG_CODE") + 10;
+			int end = text.indexOf(";@SEG_READ");
+			text = text.substring(start, end);
+
+			// Update function metadata
+			for (int i = text.indexOf(";@FUNC"); i != -1; i = text.indexOf(";@FUNC", i + 1)) {
+				int j = text.indexOf('\n', i);
+				text = text.substring(0, j) + "," + file + text.substring(j, text.length());
+			}
+
+			write(text);
+		}
+	}
+
 	private void writeStrings() {
-		for (var entry : preprocessor.extactedStrings.entrySet()) {
-			String name = "c_" + entry.getValue();
+		for (var entry : tokenProcessor.extactedStrings.entrySet()) {
+			String name = "s_" + md5 + "_" + entry.getValue();
 			String str = Utils.processLiteral(entry.getKey());
 
 			String bytes = "";
@@ -129,6 +180,8 @@ public class FasmGenerator extends ScopeBaseListener {
 			write(";@STR," + str.length());
 			write(name + " db " + bytes);
 		}
+
+		write(stringAppend);
 	}
 
 	public void write(String str) {

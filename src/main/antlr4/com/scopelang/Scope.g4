@@ -83,6 +83,7 @@ Mod: '%';
 
 // Keywords
 FuncKeyword: 'func';
+ImportKeyword: 'import';
 
 // Primitive types
 VoidType: 'void';
