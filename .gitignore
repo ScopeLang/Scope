@@ -2,3 +2,4 @@ target/
 *.asm
 *.out
 env/Test.scope
+env/*.inc

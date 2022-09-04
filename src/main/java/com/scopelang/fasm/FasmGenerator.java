@@ -17,6 +17,7 @@ public class FasmGenerator extends ScopeBaseListener {
 	private String sourceFile;
 	private String fileName;
 	private PrintWriter writer;
+	private boolean libraryMode;
 
 	public Preprocessor preprocessor;
 	public int indent = 0;
@@ -26,10 +27,11 @@ public class FasmGenerator extends ScopeBaseListener {
 
 	private boolean mainFound = false;
 
-	public FasmGenerator(String sourceFile, String fileName, Preprocessor preprocessor) {
+	public FasmGenerator(String sourceFile, String fileName, Preprocessor preprocessor, boolean libraryMode) {
 		this.sourceFile = sourceFile;
 		this.fileName = fileName;
 		this.preprocessor = preprocessor;
+		this.libraryMode = libraryMode;
 
 		try {
 			writer = new PrintWriter(fileName);
@@ -46,7 +48,14 @@ public class FasmGenerator extends ScopeBaseListener {
 		indent = 0;
 		write("; Generated to `" + fileName + "` at " + date);
 		write("");
-		write(";@FILE,ELF64," + fileName);
+
+		if (libraryMode) {
+			write(";@FILE,LIB," + sourceFile);
+			write("");
+			return;
+		}
+
+		write(";@FILE,ELF64," + sourceFile);
 		try {
 			// Split header
 			InputStream in = getClass().getResourceAsStream("files/headers/ELF64.inc");
@@ -75,17 +84,27 @@ public class FasmGenerator extends ScopeBaseListener {
 	}
 
 	public void finishGen() {
-		write("segment readable");
+		if (!libraryMode) {
+			write("segment readable");
+		} else {
+			write(";@SEG_READ");
+		}
 		write("");
 		writeStrings();
 
-		if (!mainFound) {
+		if (!mainFound && !libraryMode) {
 			Utils.error("A `main` function was not found.",
 				"Try adding a `main` function like so:",
 				"",
 				"func void main() {",
 				"\tprint(\"Hello, World!\");",
-				"}");
+				"}",
+				"",
+				"If this a library, add the `-l` flag.");
+			errored = true;
+		} else if (mainFound && libraryMode) {
+			Utils.error("A `main` function cannot be declared in library mode.",
+				"Try remove the `-l` flag to compile as a normal program.");
 			errored = true;
 		}
 

@@ -25,6 +25,11 @@ public final class Scope {
 		var outputOpt = new Option("o", "output", true, "The output path. The default is `./<inputName>.out`");
 		options.addOption(outputOpt);
 
+		var libraryOpt = new Option("l", "library", false,
+			"Whether or not the compile the specified program as a library. " +
+				"Programs compiled in library mode will output an assembly file and cannot be ran.");
+		options.addOption(libraryOpt);
+
 		var runOpt = new Option("r", "run", false, "Whether or not to run the compiled program.");
 		options.addOption(runOpt);
 
@@ -48,12 +53,25 @@ public final class Scope {
 			formatter.printHelp("scope <file>", options);
 		} else {
 			Utils.disableLog = cmd.hasOption("silent");
-			compileFile(cmd.getArgs()[0], cmd.getOptionValue("output"),
-				cmd.hasOption("run"), cmd.hasOption("delete"));
+			if (cmd.hasOption("library")) {
+				try {
+					Utils.log("Use `-s` or `--silent` to prevent output.");
+					Utils.log("\n\033[0;32m== Generating ASM ==\033[0m\n");
+					generateAsm(cmd.getArgs()[0], true);
+					Utils.log("");
+				} catch (Exception e) {
+					Utils.error("Failed to generate file.");
+					e.printStackTrace();
+					return;
+				}
+			} else {
+				compileFile(cmd.getArgs()[0], cmd.getOptionValue("output"),
+					cmd.hasOption("run"), cmd.hasOption("delete"));
+			}
 		}
 	}
 
-	public static String generateAsm(String file) throws Exception {
+	public static String generateAsm(String file, boolean libraryMode) throws Exception {
 		var errorHandler = new ErrorHandler(file);
 
 		// Lex
@@ -81,8 +99,9 @@ public final class Scope {
 		}
 
 		// Generate
-		String asmName = file + ".asm";
-		FasmGenerator generator = new FasmGenerator(file, asmName, preprocessor);
+		String asmName = file;
+		asmName += libraryMode ? ".inc" : ".asm";
+		FasmGenerator generator = new FasmGenerator(file, asmName, preprocessor, libraryMode);
 		generator.insertHeader();
 		ParseTreeWalker.DEFAULT.walk(generator, tree);
 		generator.finishGen();
@@ -96,7 +115,7 @@ public final class Scope {
 		Utils.log("\n\033[0;32m== Generating ASM ==\033[0m\n");
 		String asmName;
 		try {
-			asmName = generateAsm(file);
+			asmName = generateAsm(file, false);
 		} catch (Exception e) {
 			Utils.error("Failed to generate file.");
 			e.printStackTrace();
@@ -136,7 +155,7 @@ public final class Scope {
 		if (!delete) {
 			return;
 		}
-		Utils.runCmd("rm", "-f", "\"" + asmName + "\"");
-		Utils.runCmd("rm", "-f", "\"" + outputName + "\"");
+		Utils.runCmd("rm", "-f", asmName);
+		Utils.runCmd("rm", "-f", outputName);
 	}
 }
