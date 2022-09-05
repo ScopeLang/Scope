@@ -28,7 +28,7 @@ $ ./scope run -d helloWorld
 ```
 You can also just directly use the `./target/scopelang-1.0-jar-with-dependencies.jar` file like so:
 ```bash
-$ java -jar target/scopelang-1.0-jar-with-dependencies.jar run -d helloWorld
+$ java -jar target/scopelang-1.0-jar-with-dependencies.jar run -d env/helloWorld
 ```
 
 ## Why Java? ☕

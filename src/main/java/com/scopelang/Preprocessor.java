@@ -4,6 +4,8 @@ import java.io.File;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import com.scopelang.metadata.ImportManager;
+
 public class Preprocessor {
 	private String text;
 

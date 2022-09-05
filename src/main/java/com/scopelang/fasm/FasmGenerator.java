@@ -12,6 +12,7 @@ import org.apache.commons.io.IOUtils;
 import com.scopelang.*;
 import com.scopelang.ScopeParser.*;
 import com.scopelang.error.ErrorLoc;
+import com.scopelang.metadata.ImportManager;
 
 public class FasmGenerator extends ScopeBaseListener {
 	private File sourceFile;
