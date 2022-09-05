@@ -1,0 +1,8 @@
+func void printNewLine() {
+	print("\n");
+}
+
+func void printHelloWorld() {
+	print("Hello, World!");
+	printNewLine();
+}

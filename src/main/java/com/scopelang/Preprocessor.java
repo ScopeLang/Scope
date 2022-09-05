@@ -41,8 +41,37 @@ public class Preprocessor {
 				return;
 			}
 
+			// Get the file name
+			String fileName = text.substring(i + 1, stringEnd);
+			if (fileName.contains(".")) {
+				Utils.error("Imported files cannot have a `.` in them!",
+					"All import statments are relative to the project `.scope.xml` and do not",
+					"require the `.scope` extension.");
+				Utils.forceExit();
+				return;
+			}
+			fileName += ".scope";
+
 			// Get the file
-			File importedFile = new File(Scope.workingDir, text.substring(i + 1, stringEnd) + ".scope");
+			if (fileName.contains(":")) {
+				String libName = fileName.substring(0, fileName.indexOf(":"));
+				int index = Scope.projXml.libraries.indexOf(libName);
+				if (index != -1) {
+					String libLoc = Scope.projXml.rawLibraries.get(index);
+					File importedFile = new File(libLoc,
+						fileName.substring(fileName.indexOf(":") + 1, fileName.length()));
+					ImportManager.addLib(libName, importedFile);
+				} else {
+					Utils.error("Library with name `" + libName + "` was not added to the project.",
+						"To import this library, add the following to your `.scope.xml`:",
+						"<library>" + libName + "</library>");
+					Utils.forceExit();
+					return;
+				}
+			} else {
+				File importedFile = new File(Scope.workingDir, fileName);
+				ImportManager.add(importedFile);
+			}
 
 			// Go to end
 			i = stringEnd;
@@ -54,9 +83,6 @@ public class Preprocessor {
 				Utils.forceExit();
 				return;
 			}
-
-			// Add to imported files
-			ImportManager.add(importedFile);
 
 			// Remove the whole import statement
 			text = text.substring(0, matcher.start()) + text.substring(i + 1, text.length());

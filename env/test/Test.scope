@@ -1,4 +1,4 @@
-import "TestLib";
+import "testlib:Core";
 
 func void main() {
 	printHelloWorld();

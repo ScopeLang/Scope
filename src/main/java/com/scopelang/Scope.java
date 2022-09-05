@@ -16,6 +16,7 @@ import com.scopelang.project.ScopeXml;
 public final class Scope {
 	public static File workingDir = null;
 	public static File cacheDir = null;
+	public static ScopeXml projXml = null;
 
 	private Scope() {
 	}
@@ -71,23 +72,46 @@ public final class Scope {
 				}
 
 				// Read .scope.xml
-				ScopeXml xml = new ScopeXml(xmlFile);
+				projXml = new ScopeXml(xmlFile);
 
-				// Create .cache folder (if it doesn't exist)
-				cacheDir = new File(workingDir, ".cache");
-				Files.createDirectories(cacheDir.toPath());
+				// Create .cache folder (if it doesn't exist and the mode has one)
+				if (projXml.mode.equals("project")) {
+					cacheDir = new File(workingDir, ".cache");
+					Files.createDirectories(cacheDir.toPath());
+				}
 
 				String mode = cmd.getArgs()[0];
 				switch (mode) {
 					case "build":
-						build(xml.mainFile, false);
+						if (projXml.mode.equals("project")) {
+							build(projXml.mainFile, false);
+						} else if (projXml.mode.equals("library")) {
+							buildLibrary();
+						}
 						break;
 					case "run":
-						build(xml.mainFile, true);
+						if (!projXml.mode.equals("project")) {
+							Utils.error("You can only use the `run` option on projects!",
+								"Try using `build` instead.");
+
+							Utils.forceExit();
+							return;
+						}
+
+						build(projXml.mainFile, true);
 						break;
 					case "clean":
-						// Delete .cache folder
-						FileUtils.deleteDirectory(cacheDir);
+						if (projXml.mode.equals("library")) {
+							// Delete all scopelib files
+							for (File f : workingDir.listFiles()) {
+								if (f.getName().endsWith(".scopelib")) {
+									f.delete();
+								}
+							}
+						} else {
+							// Delete .cache folder
+							FileUtils.deleteDirectory(cacheDir);
+						}
 						break;
 					default:
 						throw new Exception();
@@ -102,7 +126,7 @@ public final class Scope {
 		}
 	}
 
-	public static void cacheAsm(File sourceFile, File outputFile, boolean libraryMode) {
+	public static void genAsm(File sourceFile, File outputFile, boolean libraryMode) {
 		var errorHandler = new ErrorHandler(sourceFile);
 
 		// Preprocess
@@ -150,7 +174,7 @@ public final class Scope {
 		// Generate ASM
 		String baseName = FilenameUtils.getBaseName(mainFile.getPath());
 		File asm = new File(cacheDir, baseName + ".scopeasm");
-		cacheAsm(mainFile, asm, false);
+		genAsm(mainFile, asm, false);
 
 		// Convert ASM to executable
 		String exeName = new File(workingDir, baseName + ".out").getAbsolutePath();
@@ -161,6 +185,16 @@ public final class Scope {
 		// Run (if asked)
 		if (run) {
 			Utils.runCmdAndWait(true, exeName);
+		}
+	}
+
+	private static void buildLibrary() {
+		// Compile all files
+		for (File f : workingDir.listFiles()) {
+			if (f.getName().endsWith(".scope")) {
+				String baseName = FilenameUtils.getBaseName(f.getPath());
+				genAsm(f, new File(workingDir, baseName + ".scopelib"), true);
+			}
 		}
 	}
 }

@@ -3,6 +3,8 @@ package com.scopelang.metadata;
 import java.io.File;
 import java.util.ArrayList;
 
+import org.apache.commons.io.FilenameUtils;
+
 import com.scopelang.Scope;
 import com.scopelang.Utils;
 
@@ -18,7 +20,7 @@ public final class ImportManager {
 
 	private static void cache(File file, File cached) {
 		try {
-			Scope.cacheAsm(file, cached, true);
+			Scope.genAsm(file, cached, true);
 		} catch (Exception e) {
 			String relativePath = Utils.pathRelativeToWorkingDir(file.toPath()).toString();
 			Utils.error("Could not generate imported file `" + relativePath + "`.");
@@ -26,6 +28,23 @@ public final class ImportManager {
 			Utils.forceExit();
 			return;
 		}
+	}
+
+	public static void addLib(String libName, File file) {
+		// Get the .scopelib file
+		String path = FilenameUtils.removeExtension(file.toPath().toString()) + ".scopelib";
+		File libFile = new File(Scope.workingDir, path);
+
+		// See if it exists
+		if (!libFile.exists()) {
+			Utils.error("The `" + libName + "` library doesn't seem to be compiled.",
+				"Build `" + libName + "` using `scope build` before using it.");
+			Utils.forceExit();
+			return;
+		}
+
+		// Add it to the list
+		importedFiles.add(file);
 	}
 
 	public static void add(File file) {
