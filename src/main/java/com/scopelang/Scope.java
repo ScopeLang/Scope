@@ -1,16 +1,22 @@
 package com.scopelang;
 
 import java.io.File;
+import java.nio.file.Files;
 
 import org.antlr.v4.runtime.*;
 import org.antlr.v4.runtime.tree.*;
 import org.apache.commons.cli.*;
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 
 import com.scopelang.error.ErrorHandler;
 import com.scopelang.fasm.FasmGenerator;
+import com.scopelang.project.ScopeXml;
 
 public final class Scope {
+	public static File workingDir = null;
+	public static File cacheDir = null;
+
 	private Scope() {
 	}
 
@@ -21,20 +27,11 @@ public final class Scope {
 		var helpOpt = new Option("h", "help", false, "Prints this.");
 		options.addOption(helpOpt);
 
-		var silentOpt = new Option("s", "silent", false,
-			"Won't print anything except for program output if applicable.");
-		options.addOption(silentOpt);
+		var directoryOpt = new Option("d", "dir", true, "The directory that the project is in.");
+		options.addOption(directoryOpt);
 
-		var outputOpt = new Option("o", "output", true, "The output path. The default is `./<inputName>.out`");
-		options.addOption(outputOpt);
-
-		var libraryOpt = new Option("l", "library", false,
-			"Whether or not the compile the specified program as a library. " +
-				"Programs compiled in library mode will output an assembly file and cannot be ran.");
-		options.addOption(libraryOpt);
-
-		var runOpt = new Option("r", "run", false, "Whether or not to run the compiled program.");
-		options.addOption(runOpt);
+		var fullOpt = new Option("f", "full", false, "Shows the full debug output.");
+		options.addOption(fullOpt);
 
 		// Parse command line args
 		CommandLineParser parser = new DefaultParser();
@@ -42,42 +39,74 @@ public final class Scope {
 		CommandLine cmd;
 		try {
 			cmd = parser.parse(options, args);
-		} catch (ParseException e) {
-			formatter.printHelp("scope <file>", options);
-			return;
-		}
+			Utils.disableLog = !cmd.hasOption("full");
 
-		// Run or print help
-		if (cmd.hasOption("help") || cmd.getArgs().length != 1) {
-			formatter.printHelp("scope <file>", options);
-		} else {
-			String file = new File(cmd.getArgs()[0]).getAbsolutePath();
-			Utils.disableLog = cmd.hasOption("silent");
-			if (cmd.hasOption("library")) {
-				ImportManager.reset();
+			if (cmd.hasOption("help") || cmd.getArgs().length != 1) {
+				// Forced "help" message to appear
+				throw new Exception();
+			} else {
+				// Set the working directory from the -d flag
+				String dir = cmd.getOptionValue("dir");
+				if (dir != null) {
+					workingDir = new File(dir);
+				}
 
-				try {
-					Utils.log("Use `-s` or `--silent` to prevent output.");
-					Utils.log("\n\033[0;32m== Generating ASM ==\033[0m\n");
-					generateAsm(file, true);
-					Utils.log("");
-				} catch (Exception e) {
-					Utils.error("Failed to generate file.");
-					e.printStackTrace();
+				// Check for .scope.xml
+				File xmlFile = new File(workingDir, ".scope.xml");
+				if (!xmlFile.exists()) {
+					Utils.error("`.scope.xml` does not exist!",
+						"The `.scope.xml` file stores information about your scope project.",
+						"",
+						"As an example, create a file named `.scope.xml` and fill it with:",
+						"<scope>",
+						"\t<mode>project</mode>",
+						"\t<main>HelloWorld.scope</main>",
+						"</scope>",
+						"",
+						"Then, create a file named `HelloWorld.scope` in the same folder and put",
+						"your scope code in it.");
+
+					Utils.forceExit();
 					return;
 				}
-			} else {
-				compileFile(file, cmd.getOptionValue("output"),
-					cmd.hasOption("run"), cmd.hasOption("delete"));
+
+				// Read .scope.xml
+				ScopeXml xml = new ScopeXml(xmlFile);
+
+				// Create .cache folder (if it doesn't exist)
+				cacheDir = new File(workingDir, ".cache");
+				Files.createDirectories(cacheDir.toPath());
+
+				String mode = cmd.getArgs()[0];
+				switch (mode) {
+					case "build":
+						build(xml.mainFile, false);
+						break;
+					case "run":
+						build(xml.mainFile, true);
+						break;
+					case "clean":
+						// Delete .cache folder
+						FileUtils.deleteDirectory(cacheDir);
+						break;
+					default:
+						throw new Exception();
+				}
 			}
+		} catch (Exception e) {
+			formatter.printHelp("scope <mode>", options);
+			System.out.println("\nmodes:");
+			System.out.println(" build   Builds the project.");
+			System.out.println(" run     Builds then runs the project.");
+			System.out.println(" clean   Deletes all cache files.");
 		}
 	}
 
-	public static String generateAsm(String file, boolean libraryMode) throws Exception {
-		var errorHandler = new ErrorHandler(file);
+	public static void cacheAsm(File sourceFile, File outputFile, boolean libraryMode) {
+		var errorHandler = new ErrorHandler(sourceFile);
 
 		// Preprocess
-		Preprocessor preprocessor = new Preprocessor(file);
+		Preprocessor preprocessor = new Preprocessor(sourceFile);
 
 		if (errorHandler.errored) {
 			Utils.forceExit();
@@ -95,7 +124,7 @@ public final class Scope {
 
 		// Token process
 		CommonTokenStream stream = new CommonTokenStream(lexer);
-		TokenProcessor tokenProcessor = new TokenProcessor(file, stream);
+		TokenProcessor tokenProcessor = new TokenProcessor(sourceFile, stream);
 
 		// Parse
 		ScopeParser parser = new ScopeParser(stream);
@@ -108,65 +137,30 @@ public final class Scope {
 		}
 
 		// Generate
-		String asmName = file;
-		asmName += libraryMode ? ".inc" : ".asm";
-		FasmGenerator generator = new FasmGenerator(file, asmName, tokenProcessor, preprocessor, libraryMode);
+		FasmGenerator generator = new FasmGenerator(sourceFile, outputFile, tokenProcessor, preprocessor, libraryMode);
 		generator.insertHeader();
 		ParseTreeWalker.DEFAULT.walk(generator, tree);
 		generator.finishGen();
 
-		return asmName;
+		// Log
+		Utils.log("Generated and cached `" + Utils.pathRelativeToWorkingDir(outputFile.toPath()).toString() + "`.");
 	}
 
-	public static void compileFile(String file, String outputName, boolean run, boolean delete) {
-		ImportManager.reset();
+	private static void build(File mainFile, boolean run) {
+		// Generate ASM
+		String baseName = FilenameUtils.getBaseName(mainFile.getPath());
+		File asm = new File(cacheDir, baseName + ".scopeasm");
+		cacheAsm(mainFile, asm, false);
 
-		// Generate asm
-		Utils.log("Use `-s` or `--silent` to prevent output.");
-		Utils.log("\n\033[0;32m== Generating ASM ==\033[0m\n");
-		String asmName;
-		try {
-			asmName = generateAsm(file, false);
-		} catch (Exception e) {
-			Utils.error("Failed to generate file.");
-			e.printStackTrace();
-			return;
+		// Convert ASM to executable
+		String exeName = new File(workingDir, baseName + ".out").getAbsolutePath();
+		Utils.log("Compiling executable to `" + exeName + "`.");
+		Utils.runCmdAndWait("fasm", asm.getAbsolutePath(), exeName);
+		Utils.runCmdAndWait("chmod", "+x", exeName);
+
+		// Run (if asked)
+		if (run) {
+			Utils.runCmdAndWait(true, exeName);
 		}
-
-		// Get the name of the output
-		if (outputName == null) {
-			outputName = FilenameUtils.removeExtension(file) + ".out";
-		}
-
-		// Generate executable
-		Utils.log("\n\033[0;32m== Compiling ==\033[0m\n");
-		Utils.runCmdAndWait("fasm", asmName, outputName);
-		Utils.runCmdAndWait("chmod", "+x", outputName);
-
-		// If the file wasn't generated (i.e. FASM errored), exit
-		if (!new File(outputName).exists()) {
-			Utils.log("");
-			Utils.forceExit();
-			return;
-		}
-
-		Utils.log("Finished compiling to `" + outputName + "`.");
-
-		if (!run) {
-			Utils.log("");
-			return;
-		}
-
-		// Run executable
-		Utils.log("\n\033[0;32m== Running ==\033[0m\n");
-		long startTime = System.currentTimeMillis();
-		int exitCode = Utils.runCmdAndWait(true, outputName);
-		long endTime = System.currentTimeMillis();
-
-		// Print stats
-		Utils.log("\n\033[0;32m== Stats ==\033[0m\n");
-		Utils.log("Exit code: " + exitCode);
-		Utils.log("Time: ~" + (endTime - startTime) + "ms");
-		Utils.log("");
 	}
 }

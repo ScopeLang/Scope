@@ -1,5 +1,6 @@
 package com.scopelang.error;
 
+import java.io.File;
 import java.util.BitSet;
 
 import org.antlr.v4.runtime.*;
@@ -9,11 +10,11 @@ import org.antlr.v4.runtime.dfa.DFA;
 import com.scopelang.Utils;
 
 public class ErrorHandler implements ANTLRErrorListener {
-	private String file;
+	private File file;
 
 	public boolean errored = false;
 
-	public ErrorHandler(String file) {
+	public ErrorHandler(File file) {
 		this.file = file;
 	}
 

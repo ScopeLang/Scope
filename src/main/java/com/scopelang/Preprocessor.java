@@ -5,19 +5,15 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class Preprocessor {
-	private String file;
 	private String text;
 
-	public Preprocessor(String file) {
-		this.file = file;
+	public Preprocessor(File file) {
 		text = Utils.readFile(file);
 
 		preprocess();
 	}
 
 	private void preprocess() {
-		String path = new File(file).getParentFile().getAbsolutePath() + "/";
-
 		// Process import "statements"
 		Pattern regex = Pattern.compile("\\b(import)\\b");
 		Matcher matcher = regex.matcher(text);
@@ -44,7 +40,7 @@ public class Preprocessor {
 			}
 
 			// Get the file
-			String fileName = path + text.substring(i + 1, stringEnd) + ".scope";
+			File importedFile = new File(Scope.workingDir, text.substring(i + 1, stringEnd) + ".scope");
 
 			// Go to end
 			i = stringEnd;
@@ -58,7 +54,7 @@ public class Preprocessor {
 			}
 
 			// Add to imported files
-			ImportManager.add(fileName);
+			ImportManager.add(importedFile);
 
 			// Remove the whole import statement
 			text = text.substring(0, matcher.start()) + text.substring(i + 1, text.length());

@@ -1,0 +1,6 @@
+import "TestLib";
+
+func void main() {
+	printHelloWorld();
+	print("Above was not in this file!!\n");
+}

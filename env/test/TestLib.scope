@@ -1,0 +1,11 @@
+import "OtherLib";
+
+func void printWorld() {
+	print("World!");
+}
+
+func void printHelloWorld() {
+	printHello();
+	printWorld();
+	print("\n");
+}

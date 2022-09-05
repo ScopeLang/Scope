@@ -2,11 +2,12 @@ package com.scopelang;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
 import java.util.*;
 import java.util.stream.Stream;
 
 import org.apache.commons.codec.digest.DigestUtils;
-import org.apache.commons.io.IOUtils;
+import org.apache.commons.io.*;
 import org.apache.commons.text.StringEscapeUtils;
 import org.apache.commons.text.similarity.LevenshteinDistance;
 
@@ -38,20 +39,30 @@ public final class Utils {
 		return possibleValues.min(compare).orElse(null);
 	}
 
-	public static String readFile(String filePath) {
+	public static String readFile(File file) {
 		try {
-			var s = new BufferedInputStream(new FileInputStream(filePath));
-			return IOUtils.toString(s, StandardCharsets.UTF_8);
+			return FileUtils.readFileToString(file, StandardCharsets.UTF_8);
 		} catch (Exception e) {
-			Utils.error("File `" + filePath + "` could not be read.", "Does `" + filePath + "` exist?");
+			Utils.error("File `" + file + "` could not be read.", "Does `" + file + "` exist?");
 			Utils.forceExit();
 			return null;
 		}
 	}
 
-	public static String hashOf(String fileName) {
+	public static Path pathRelativeToWorkingDir(Path path) {
+		Path base = Scope.workingDir.toPath();
+		return base.relativize(path);
+	}
+
+	public static File convertUncachedLibToCached(File file) {
+		String relative = pathRelativeToWorkingDir(file.toPath()).toString();
+		String baseName = FilenameUtils.removeExtension(relative);
+		return new File(Scope.cacheDir, baseName + ".scopelib");
+	}
+
+	public static String hashOf(File file) {
 		try {
-			return DigestUtils.md5Hex(new FileInputStream(new File(fileName)));
+			return DigestUtils.md5Hex(new FileInputStream(file));
 		} catch (Exception e) {
 			e.printStackTrace();
 			return null;

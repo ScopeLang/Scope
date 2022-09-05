@@ -1,5 +1,6 @@
 package com.scopelang;
 
+import java.io.File;
 import java.util.HashMap;
 
 import org.antlr.v4.runtime.*;
@@ -7,13 +8,13 @@ import org.antlr.v4.runtime.*;
 import com.scopelang.error.ErrorLoc;
 
 public class TokenProcessor {
-	private String sourceFile;
+	private File sourceFile;
 	private CommonTokenStream stream;
 
 	public boolean errored = false;
 	public HashMap<String, Integer> extactedStrings;
 
-	public TokenProcessor(String sourceFile, CommonTokenStream tokenStream) {
+	public TokenProcessor(File sourceFile, CommonTokenStream tokenStream) {
 		this.sourceFile = sourceFile;
 		stream = tokenStream;
 

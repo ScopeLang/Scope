@@ -6,7 +6,7 @@ import java.util.ArrayList;
 import com.scopelang.metadata.FasmAnalyzer;
 
 public final class ImportManager {
-	private static ArrayList<String> importedFiles = new ArrayList<>();
+	private static ArrayList<File> importedFiles = new ArrayList<>();
 
 	private ImportManager() {
 	}
@@ -15,32 +15,33 @@ public final class ImportManager {
 		importedFiles.clear();
 	}
 
-	public static void add(String filePath) {
+	public static void add(File file) {
 		// Check if a compiled version exists
-		String libPath = filePath + ".inc";
-		if (!new File(libPath).exists()) {
+		File cached = Utils.convertUncachedLibToCached(file);
+		if (!cached.exists()) {
 			// If not, compile it (imports will be added)
 			try {
-				Scope.generateAsm(filePath, true);
+				Scope.cacheAsm(file, cached, true);
 			} catch (Exception e) {
-				Utils.error("Could not generate imported file `" + filePath + "`.");
+				String relativePath = Utils.pathRelativeToWorkingDir(file.toPath()).toString();
+				Utils.error("Could not generate imported file `" + relativePath + "`.");
 				e.printStackTrace();
 				Utils.forceExit();
 				return;
 			}
 		} else {
 			// If so, read metadata and import manually
-			FasmAnalyzer analyzer = new FasmAnalyzer(libPath);
+			FasmAnalyzer analyzer = new FasmAnalyzer(cached);
 			for (var data : analyzer.imports) {
 				add(data.file);
 			}
 		}
 
 		// Add it to the list
-		importedFiles.add(filePath);
+		importedFiles.add(file);
 	}
 
-	public static String[] getAll() {
-		return importedFiles.toArray(new String[0]);
+	public static File[] getAll() {
+		return importedFiles.toArray(new File[0]);
 	}
 }

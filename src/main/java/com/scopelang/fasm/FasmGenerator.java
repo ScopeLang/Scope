@@ -14,8 +14,7 @@ import com.scopelang.ScopeParser.*;
 import com.scopelang.error.ErrorLoc;
 
 public class FasmGenerator extends ScopeBaseListener {
-	private String sourceFile;
-	private String fileName;
+	private File sourceFile;
 	private PrintWriter writer;
 	private boolean libraryMode;
 
@@ -30,11 +29,10 @@ public class FasmGenerator extends ScopeBaseListener {
 	private boolean mainFound = false;
 	private String stringAppend = "";
 
-	public FasmGenerator(String sourceFile, String fileName, TokenProcessor tokenProcessor, Preprocessor preprocessor,
+	public FasmGenerator(File sourceFile, File fileName, TokenProcessor tokenProcessor, Preprocessor preprocessor,
 		boolean libraryMode) {
 
 		this.sourceFile = sourceFile;
-		this.fileName = fileName;
 		this.tokenProcessor = tokenProcessor;
 		this.preprocessor = preprocessor;
 		this.libraryMode = libraryMode;
@@ -51,20 +49,21 @@ public class FasmGenerator extends ScopeBaseListener {
 
 	public void insertHeader() {
 		String date = DateTimeFormatter.ofPattern("yyyy/MM/dd hh:mm:ss a").format(LocalDateTime.now());
+		String filePath = Utils.pathRelativeToWorkingDir(sourceFile.toPath()).toString();
 
 		indent = 0;
 		write("; Generated at " + date);
 		write("");
 
 		if (libraryMode) {
-			write(";@FILE,LIB," + md5 + "," + sourceFile);
+			write(";@FILE,LIB," + md5 + "," + filePath);
 			writeImportMeta();
 			write("");
 			write(";@SEG_CODE");
 			return;
 		}
 
-		write(";@FILE,ELF64," + md5 + "," + sourceFile);
+		write(";@FILE,ELF64," + md5 + "," + filePath);
 		try {
 			// Split header
 			InputStream in = getClass().getResourceAsStream("files/headers/ELF64.inc");
@@ -130,23 +129,13 @@ public class FasmGenerator extends ScopeBaseListener {
 
 	private void writeImportMeta() {
 		for (var file : ImportManager.getAll()) {
-			write(";@IMPORT," + Utils.hashOf(file) + "," + file);
+			write(";@IMPORT," + Utils.hashOf(file) + "," + Utils.pathRelativeToWorkingDir(file.toPath()).toString());
 		}
 	}
 
 	private void writeImports() {
 		for (var file : ImportManager.getAll()) {
-			String text;
-			try {
-				var s = new BufferedInputStream(new FileInputStream(file + ".inc"));
-				text = IOUtils.toString(s, StandardCharsets.UTF_8);
-			} catch (Exception e) {
-				// Needed files should've been generated.
-				Utils.error("Unreachable");
-				e.printStackTrace();
-				Utils.forceExit();
-				return;
-			}
+			String text = Utils.readFile(Utils.convertUncachedLibToCached(file));
 
 			// Append to constants
 			stringAppend += text.substring(text.indexOf(";@SEG_READ") + 10, text.length()).trim() + "\n";
@@ -198,12 +187,6 @@ public class FasmGenerator extends ScopeBaseListener {
 	}
 
 	private void finish() {
-		if (!errored) {
-			Utils.log("Finished writing assembly to `" + fileName + "`.");
-		} else {
-			Utils.log("Finished writing assembly to `" + fileName + "` (with errors).\n");
-		}
-
 		writer.flush();
 		writer.close();
 	}

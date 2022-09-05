@@ -1,15 +1,17 @@
 package com.scopelang.metadata;
 
+import java.io.File;
 import java.util.ArrayList;
 
+import com.scopelang.Scope;
 import com.scopelang.Utils;
 
 public class FasmAnalyzer {
 	public class ImportMeta {
-		public String file;
+		public File file;
 		public String md5;
 
-		public ImportMeta(String file, String md5) {
+		public ImportMeta(File file, String md5) {
 			this.file = file;
 			this.md5 = md5;
 		}
@@ -19,7 +21,7 @@ public class FasmAnalyzer {
 
 	public ArrayList<ImportMeta> imports = new ArrayList<>();
 
-	public FasmAnalyzer(String file) {
+	public FasmAnalyzer(File file) {
 		text = Utils.readFile(file);
 
 		analyze();
@@ -40,11 +42,11 @@ public class FasmAnalyzer {
 			// Get the index of the newline
 			j = text.indexOf("\n", i + 1);
 
-			// Get the filepath
-			String path = text.substring(i, j);
+			// Get the file
+			File file = new File(Scope.workingDir, text.substring(i, j));
 
 			// Add
-			imports.add(new ImportMeta(path, md5));
+			imports.add(new ImportMeta(file, md5));
 		}
 	}
 }
