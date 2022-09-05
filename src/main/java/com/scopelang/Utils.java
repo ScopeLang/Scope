@@ -1,10 +1,12 @@
 package com.scopelang;
 
 import java.io.*;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.stream.Stream;
 
 import org.apache.commons.codec.digest.DigestUtils;
+import org.apache.commons.io.IOUtils;
 import org.apache.commons.text.StringEscapeUtils;
 import org.apache.commons.text.similarity.LevenshteinDistance;
 
@@ -34,6 +36,17 @@ public final class Utils {
 		};
 
 		return possibleValues.min(compare).orElse(null);
+	}
+
+	public static String readFile(String filePath) {
+		try {
+			var s = new BufferedInputStream(new FileInputStream(filePath));
+			return IOUtils.toString(s, StandardCharsets.UTF_8);
+		} catch (Exception e) {
+			Utils.error("File `" + filePath + "` could not be read.", "Does `" + filePath + "` exist?");
+			Utils.forceExit();
+			return null;
+		}
 	}
 
 	public static String hashOf(String fileName) {

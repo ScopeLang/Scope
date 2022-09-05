@@ -129,13 +129,13 @@ public class FasmGenerator extends ScopeBaseListener {
 	}
 
 	private void writeImportMeta() {
-		for (var file : preprocessor.importedFiles) {
+		for (var file : ImportManager.getAll()) {
 			write(";@IMPORT," + Utils.hashOf(file) + "," + file);
 		}
 	}
 
 	private void writeImports() {
-		for (var file : preprocessor.importedFiles) {
+		for (var file : ImportManager.getAll()) {
 			String text;
 			try {
 				var s = new BufferedInputStream(new FileInputStream(file + ".inc"));
@@ -149,7 +149,7 @@ public class FasmGenerator extends ScopeBaseListener {
 			}
 
 			// Append to constants
-			stringAppend += text.substring(text.indexOf(";@SEG_READ") + 10, text.length()).trim();
+			stringAppend += text.substring(text.indexOf(";@SEG_READ") + 10, text.length()).trim() + "\n";
 
 			// Get the section of code
 			int start = text.indexOf(";@SEG_CODE") + 10;

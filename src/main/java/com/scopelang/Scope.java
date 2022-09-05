@@ -54,6 +54,8 @@ public final class Scope {
 			String file = new File(cmd.getArgs()[0]).getAbsolutePath();
 			Utils.disableLog = cmd.hasOption("silent");
 			if (cmd.hasOption("library")) {
+				ImportManager.reset();
+
 				try {
 					Utils.log("Use `-s` or `--silent` to prevent output.");
 					Utils.log("\n\033[0;32m== Generating ASM ==\033[0m\n");
@@ -117,6 +119,8 @@ public final class Scope {
 	}
 
 	public static void compileFile(String file, String outputName, boolean run, boolean delete) {
+		ImportManager.reset();
+
 		// Generate asm
 		Utils.log("Use `-s` or `--silent` to prevent output.");
 		Utils.log("\n\033[0;32m== Generating ASM ==\033[0m\n");
