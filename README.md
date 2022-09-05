@@ -22,13 +22,13 @@ $ git clone https://github.com/ScopeLang/Scope.git
 # Build...
 $ mvn package
 ```
-You can then use the `./scope` bash script to build a Scope program in the `./env/` like so:
+You can then use the `./scope` bash script to build and run a Scope project in the `./env/` directory like so:
 ```bash
-$ ./scope HelloWorld.scope --silent --run --delete
+$ ./scope run -d helloWorld
 ```
 You can also just directly use the `./target/scopelang-1.0-jar-with-dependencies.jar` file like so:
 ```bash
-$ java -jar target/scopelang-1.0-jar-with-dependencies.jar env/HelloWorld.scope --silent --run --delete
+$ java -jar target/scopelang-1.0-jar-with-dependencies.jar run -d helloWorld
 ```
 
 ## Why Java? ☕
