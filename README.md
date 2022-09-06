@@ -30,6 +30,12 @@ You can also just directly use the `./target/scopelang-1.0-jar-with-dependencies
 ```bash
 $ java -jar target/scopelang-1.0-jar-with-dependencies.jar run -d env/helloWorld
 ```
+If you want to **install** scope onto your system, do the following:
+```bash
+$ sudo ./install
+```
+Keep in mind that this creates a batch script at `/bin/scope` which serves as a
+direct link to `./target/scopelang-1.0-jar-with-dependencies.jar`. You do not need to re-install every time you build.
 
 ## Why Java? ☕
 

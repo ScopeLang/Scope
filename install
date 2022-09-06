@@ -1,0 +1,6 @@
+#!/bin/bash
+
+JAR=$(readlink -f target/scopelang-1.0-jar-with-dependencies.jar)
+echo "#!/bin/bash" > /bin/scope
+echo "java -jar ${JAR} $@" >> /bin/scope
+chmod +x /bin/scope
