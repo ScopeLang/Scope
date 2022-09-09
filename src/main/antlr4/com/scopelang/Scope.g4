@@ -22,6 +22,7 @@ outerStatments
 innerStatement
 	: invoke
 	| declare
+	| return
 	;
 outerStatement
 	: function
@@ -29,6 +30,7 @@ outerStatement
 
 typeName
 	: VoidType
+	| StringType
 	;
 
 // Inner statements
@@ -37,6 +39,9 @@ invoke
 	;
 declare
 	: StringType Identifier '=' expr EndLine
+	;
+return
+	: ReturnKeyword expr EndLine
 	;
 
 // Outer statements
@@ -54,6 +59,7 @@ expr
 	;
 atom
 	: literals
+	| Identifier '(' ')'
 	| Identifier
 	;
 literals
@@ -84,6 +90,7 @@ Mod: '%';
 // Keywords
 FuncKeyword: 'func';
 ImportKeyword: 'import';
+ReturnKeyword: 'ret';
 
 // Primitive types
 VoidType: 'void';

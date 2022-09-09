@@ -1,6 +1,7 @@
 package com.scopelang;
 
 import java.io.File;
+import java.io.IOException;
 import java.nio.file.Files;
 
 import org.antlr.v4.runtime.*;
@@ -40,90 +41,109 @@ public final class Scope {
 		CommandLine cmd;
 		try {
 			cmd = parser.parse(options, args);
-			Utils.disableLog = !cmd.hasOption("full");
+		} catch (Exception e) {
+			printHelp(formatter, options);
+			return;
+		}
 
-			if (cmd.hasOption("help") || cmd.getArgs().length != 1) {
-				// Forced "help" message to appear
-				throw new Exception();
-			} else {
-				// Set the working directory from the -d flag
-				String dir = cmd.getOptionValue("dir");
-				if (dir != null) {
-					workingDir = new File(dir);
-				}
+		Utils.disableLog = !cmd.hasOption("full");
 
-				// Check for .scope.xml
-				File xmlFile = new File(workingDir, ".scope.xml");
-				if (!xmlFile.exists()) {
-					Utils.error("`.scope.xml` does not exist!",
-						"The `.scope.xml` file stores information about your scope project.",
-						"",
-						"As an example, create a file named `.scope.xml` and fill it with:",
-						"<scope>",
-						"\t<mode>project</mode>",
-						"\t<main>HelloWorld.scope</main>",
-						"</scope>",
-						"",
-						"Then, create a file named `HelloWorld.scope` in the same folder and put",
-						"your scope code in it.");
+		if (cmd.hasOption("help") || cmd.getArgs().length != 1) {
+			printHelp(formatter, options);
+			return;
+		} else {
+			// Set the working directory from the -d flag
+			String dir = cmd.getOptionValue("dir");
+			if (dir != null) {
+				workingDir = new File(dir);
+			}
 
-					Utils.forceExit();
+			// Check for .scope.xml
+			File xmlFile = new File(workingDir, ".scope.xml");
+			if (!xmlFile.exists()) {
+				Utils.error("`.scope.xml` does not exist!",
+					"The `.scope.xml` file stores information about your scope project.",
+					"",
+					"As an example, create a file named `.scope.xml` and fill it with:",
+					"<scope>",
+					"\t<mode>project</mode>",
+					"\t<main>HelloWorld.scope</main>",
+					"</scope>",
+					"",
+					"Then, create a file named `HelloWorld.scope` in the same folder and put",
+					"your scope code in it.");
+				return;
+			}
+
+			// Read .scope.xml
+			projXml = new ScopeXml(xmlFile);
+
+			// Create .cache folder (if it doesn't exist and the mode has one)
+			if (projXml.mode.equals("project")) {
+				cacheDir = new File(workingDir, ".cache");
+				try {
+					Files.createDirectories(cacheDir.toPath());
+				} catch (IOException e) {
+					Utils.error("Unable to create cache folder.");
+					if (!Utils.disableLog) {
+						e.printStackTrace();
+					}
 					return;
 				}
+			}
 
-				// Read .scope.xml
-				projXml = new ScopeXml(xmlFile);
+			String mode = cmd.getArgs()[0];
+			switch (mode) {
+				case "build":
+					if (projXml.mode.equals("project")) {
+						build(projXml.mainFile, false);
+					} else if (projXml.mode.equals("library")) {
+						buildLibrary();
+					}
+					break;
+				case "run":
+					if (!projXml.mode.equals("project")) {
+						Utils.error("You can only use the `run` option on projects!",
+							"Try using `build` instead.");
+						return;
+					}
 
-				// Create .cache folder (if it doesn't exist and the mode has one)
-				if (projXml.mode.equals("project")) {
-					cacheDir = new File(workingDir, ".cache");
-					Files.createDirectories(cacheDir.toPath());
-				}
-
-				String mode = cmd.getArgs()[0];
-				switch (mode) {
-					case "build":
-						if (projXml.mode.equals("project")) {
-							build(projXml.mainFile, false);
-						} else if (projXml.mode.equals("library")) {
-							buildLibrary();
-						}
-						break;
-					case "run":
-						if (!projXml.mode.equals("project")) {
-							Utils.error("You can only use the `run` option on projects!",
-								"Try using `build` instead.");
-
-							Utils.forceExit();
-							return;
-						}
-
-						build(projXml.mainFile, true);
-						break;
-					case "clean":
-						if (projXml.mode.equals("library")) {
-							// Delete all scopelib files
-							for (File f : workingDir.listFiles()) {
-								if (f.getName().endsWith(".scopelib")) {
-									f.delete();
-								}
+					build(projXml.mainFile, true);
+					break;
+				case "clean":
+					if (projXml.mode.equals("library")) {
+						// Delete all scopelib files
+						for (File f : workingDir.listFiles()) {
+							if (f.getName().endsWith(".scopelib")) {
+								f.delete();
 							}
-						} else {
+						}
+					} else {
+						try {
 							// Delete .cache folder
 							FileUtils.deleteDirectory(cacheDir);
+						} catch (IOException e) {
+							Utils.error("Could not delete cache folder.");
+							if (!Utils.disableLog) {
+								e.printStackTrace();
+							}
+							return;
 						}
-						break;
-					default:
-						throw new Exception();
-				}
+					}
+					break;
+				default:
+					printHelp(formatter, options);
+					return;
 			}
-		} catch (Exception e) {
-			formatter.printHelp("scope <mode>", options);
-			System.out.println("\nmodes:");
-			System.out.println(" build   Builds the project.");
-			System.out.println(" run     Builds then runs the project.");
-			System.out.println(" clean   Deletes all cache files.");
 		}
+	}
+
+	private static void printHelp(HelpFormatter formatter, Options options) {
+		formatter.printHelp("scope <mode>", options);
+		System.out.println("\nmodes:");
+		System.out.println(" build   Builds the project.");
+		System.out.println(" run     Builds then runs the project.");
+		System.out.println(" clean   Deletes all cache files.");
 	}
 
 	public static void genAsm(File sourceFile, File outputFile, boolean libraryMode) {

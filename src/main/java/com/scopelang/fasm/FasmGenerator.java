@@ -218,21 +218,27 @@ public class FasmGenerator extends ScopeBaseListener {
 
 	@Override
 	public void exitFunction(FunctionContext ctx) {
-		write("pop rax");
-		write("mov QWORD [vlist], rax");
+		String ident = ctx.Identifier().getText();
+		endFunction(ctx.typeName().VoidType() != null, ident.equals("main"));
+
+		indent--;
+		write("");
+	}
+
+	private void endFunction(boolean isVoid, boolean isMain) {
+		if (isVoid) {
+			write("pop rax");
+			write("mov QWORD [vlist], rax");
+		}
 		write("pop rbp");
 
 		// Add program exit if main func, return otherwise
-		String ident = ctx.Identifier().getText();
-		if (ident.equals("main")) {
+		if (isMain) {
 			write("mov rdi, 0");
 			write("call exit");
 		} else {
 			write("ret");
 		}
-
-		indent--;
-		write("");
 	}
 
 	@Override
@@ -276,5 +282,14 @@ public class FasmGenerator extends ScopeBaseListener {
 		} else {
 			write("call f_" + ident);
 		}
+	}
+
+	@Override
+	public void exitReturn(ReturnContext ctx) {
+		write("pop rax");
+		write("mov QWORD [vlist], rax");
+		ExprEvaluator.eval(this, ctx.expr());
+		write("call vlist_append");
+		endFunction(false, false);
 	}
 }

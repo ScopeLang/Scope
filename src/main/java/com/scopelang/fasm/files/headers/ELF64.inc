@@ -22,8 +22,31 @@ common
 	.size = $ - .
 }
 
-macro vlist_getsize o, index { mov o, DWORD [(vlist + 8) + (16 * index + 0)] }
-macro vlist_getptr  o, index { mov o, QWORD [(vlist + 8) + (16 * index + 8)] }
+macro vlist_getsize o, index { 
+	if index in <rax>
+		push index
+		imul index, 16
+		add index, vlist
+		add index, 8
+		mov o, DWORD [index]
+		pop index
+	else
+		mov o, DWORD [(vlist + 8) + (16 * index + 0)]
+	end if
+}
+macro vlist_getptr o, index {
+	if index in <rax>
+		push index
+		imul index, 16
+		add index, 8
+		add index, vlist
+		add index, 8
+		mov o, QWORD [index]
+		pop index
+	else
+		mov o, QWORD [(vlist + 8) + (16 * index + 8)]
+	end if
+}
 
 macro push [i] { push i }
 macro pop  [i] { pop  i }

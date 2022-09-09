@@ -11,6 +11,12 @@ public final class AtomEvaluator {
 		if (ctx.literals() != null) {
 			// Handle literals
 			evalLiteral(g, ctx.literals());
+		} else if (ctx.Identifier() != null && ctx.LeftParen() != null && ctx.RightParen() != null) {
+			// Handle invoke
+			String name = ctx.Identifier().getText();
+			g.write("call f_" + name);
+			g.write("vlist_getptr rdi, rax");
+			g.write("vlist_getsize esi, rax");
 		} else if (ctx.Identifier() != null) {
 			// Handle variables
 			String name = ctx.Identifier().getText();
