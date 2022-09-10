@@ -33,6 +33,13 @@ typeName
 	| StringType
 	;
 
+parameter
+	: typeName Identifier
+	;
+parameters
+	: (parameter (',' parameter)*)?
+	;
+
 // Inner statements
 invoke
 	: Identifier '(' expr? ')' EndLine
@@ -46,7 +53,7 @@ return
 
 // Outer statements
 function
-	: FuncKeyword typeName Identifier '(' ')' (codeblock | EndLine)
+	: FuncKeyword typeName Identifier '(' parameters ')' (codeblock | EndLine)
 	;
 
 // Expressions

@@ -22,30 +22,35 @@ common
 	.size = $ - .
 }
 
-macro vlist_getsize o, index { 
-	if index in <rax>
-		push index
-		imul index, 16
-		add index, vlist
-		add index, 8
-		mov o, DWORD [index]
-		pop index
-	else
-		mov o, DWORD [(vlist + 8) + (16 * index + 0)]
+; Move a DWORD (b) into a 64 bit register (a)
+macro movqd a, b {
+	if a in <rax>
+		mov eax, b
+	else if a in <rdi>
+		mov edi, b
+	else if a in <rsi>
+		mov esi, b
+	else if a in <rdx>
+		mov edx, b
+	else if a in <rcx>
+		mov ecx, b
+	else 
+		display "Invalid register for `movqd`"
 	end if
 }
+
 macro vlist_getptr o, index {
-	if index in <rax>
-		push index
-		imul index, 16
-		add index, 8
-		add index, vlist
-		add index, 8
-		mov o, QWORD [index]
-		pop index
-	else
-		mov o, QWORD [(vlist + 8) + (16 * index + 8)]
-	end if
+	mov o, index
+	imul o, 16
+	add o, 8
+	add o, QWORD [vlist]
+	mov o, QWORD [o]
+}
+macro vlist_getsize o, index { 
+	mov o, index
+	imul o, 16
+	add o, QWORD [vlist]
+	movqd o, DWORD [o]
 }
 
 macro push [i] { push i }
@@ -55,7 +60,13 @@ macro pop  [i] { pop  i }
 ;
 segment readable writable
 
-vlist rb VLIST_SIZE
+; The actual data of the vlist
+vlist_start rb VLIST_SIZE
+; The reference frame of the vlist
+vlist rb 8
+; The end of the vlist
+vlist_end rb 8
+
 curpkg rb 8
 
 ; Code ;
@@ -64,7 +75,8 @@ segment readable executable
 entry f_main
 
 init:
-	lea rax, [vlist + 8]
+	lea rax, [vlist_start]
+	mov QWORD [vlist_end], rax
 	mov QWORD [vlist], rax
 	call package_create
 	mov QWORD [curpkg], rax
@@ -148,12 +160,12 @@ package_delete:
 ; ret: rax index
 vlist_append:
 	push rsi
-	mov rax, QWORD [vlist] ; endptr
+	mov rax, QWORD [vlist_end]
 	mov [rax], rsi
 	mov [rax + 8], rdi
-	lea rsi, [vlist]
+	mov rsi, QWORD [vlist]
 	sub rax, rsi
 	shr rax, 4 ; Divide by 16
-	add QWORD [vlist], 16
+	add QWORD [vlist_end], 16
 	pop rsi
 	ret

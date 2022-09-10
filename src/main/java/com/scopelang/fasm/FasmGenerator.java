@@ -15,6 +15,17 @@ import com.scopelang.error.ErrorLoc;
 import com.scopelang.metadata.ImportManager;
 
 public class FasmGenerator extends ScopeBaseListener {
+	private static final String[] argRegisters = {
+		"rdi",
+		"rsi",
+		"rdx",
+		"rcx",
+		"r8",
+		"r9",
+		"r10",
+		"r11"
+	};
+
 	private File sourceFile;
 	private PrintWriter writer;
 	private boolean libraryMode;
@@ -209,11 +220,37 @@ public class FasmGenerator extends ScopeBaseListener {
 			write("call init");
 		}
 
-		write("push rbp");
-		write("mov rbp, rsp");
-		write("push QWORD [vlist]");
-
 		localVariables.clear();
+
+		// Error if there are too many parameters
+		var params = ctx.parameters().parameter();
+		if (params.size() > argRegisters.length) {
+			Utils.error(locationOf(ctx.start),
+				"A function cannot have more than " + argRegisters.length + " parmeters.",
+				"Having more than " + argRegisters.length + " parmeters is unreadable. Consider refactoring.");
+			errored = true;
+		}
+
+		// Push arguments as local variables
+		for (int i = 0; i < params.size() && i < argRegisters.length; i++) {
+			var param = params.get(i);
+			var name = param.Identifier().getText();
+			if (localVariables.containsKey(name)) {
+				Utils.error(locationOf(param.Identifier().getSymbol()),
+					"Parameter `" + name + "` was already defined in the function contract.",
+					"Try to keep parameter names concise and readable.");
+				errored = true;
+				continue;
+			}
+
+			localVariables.put(name, localVariables.size());
+			write("");
+		}
+
+		write("push QWORD [vlist_end]");
+		write("push QWORD [vlist]");
+		write("mov rax, QWORD [vlist_end]");
+		write("mov QWORD [vlist], rax");
 	}
 
 	@Override
@@ -229,8 +266,9 @@ public class FasmGenerator extends ScopeBaseListener {
 		if (isVoid) {
 			write("pop rax");
 			write("mov QWORD [vlist], rax");
+			write("pop rax");
+			write("mov QWORD [vlist_end], rax");
 		}
-		write("pop rbp");
 
 		// Add program exit if main func, return otherwise
 		if (isMain) {
@@ -287,9 +325,10 @@ public class FasmGenerator extends ScopeBaseListener {
 	@Override
 	public void exitReturn(ReturnContext ctx) {
 		write("pop rax");
+		write("mov vlist, rax");
+		write("pop rax");
 		write("mov QWORD [vlist], rax");
 		ExprEvaluator.eval(this, ctx.expr());
-		write("call vlist_append");
 		endFunction(false, false);
 	}
 }

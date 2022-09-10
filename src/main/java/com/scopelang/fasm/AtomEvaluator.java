@@ -15,8 +15,6 @@ public final class AtomEvaluator {
 			// Handle invoke
 			String name = ctx.Identifier().getText();
 			g.write("call f_" + name);
-			g.write("vlist_getptr rdi, rax");
-			g.write("vlist_getsize esi, rax");
 		} else if (ctx.Identifier() != null) {
 			// Handle variables
 			String name = ctx.Identifier().getText();
@@ -40,7 +38,7 @@ public final class AtomEvaluator {
 
 			int id = g.localVariables.get(name);
 			g.write("vlist_getptr rdi, " + id);
-			g.write("vlist_getsize esi, " + id);
+			g.write("vlist_getsize rsi, " + id);
 		} else {
 			Utils.error("Unhandled atom node.", "This is probably not your fault.");
 			g.errored = true;

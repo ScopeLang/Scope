@@ -2,7 +2,11 @@ func void printNewLine() {
 	print("\n");
 }
 
+func string getHelloWorld() {
+	ret "Hello, World!";
+}
+
 func void printHelloWorld() {
-	print("Hello, World!");
+	print(getHelloWorld());
 	printNewLine();
 }
