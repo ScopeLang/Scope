@@ -3,11 +3,8 @@ use64
 
 ; Help ;
 ;
-; Return    : rax
-; Arguments : rdi, rsi, rdx, rcx, r8, r9, r10, r11
-;
-; VList      : | ENDPTR (8) | ELEM (16)... |
-; VList elem : | SIZE (4) | PADDING (4) | PTR (8) |
+; args       : rdi, rsi, rdx, rcx, r8, r9, r10, r11
+; vlist elem : SIZE (4) | PADDING (4) | PTR (8)
 ;
 ; Settings ;
 ;
