@@ -106,7 +106,7 @@ public class ScopeXml {
 
 			rawLibraries.add(path);
 
-			File f = new File(Scope.workingDir, path + "/.scope.xml");
+			File f = new File(Scope.workingDir, path + File.separator + ".scope.xml");
 			if (!f.exists()) {
 				Utils.error("`" + path + "` is an invalid library.",
 					"No `.scope.xml` file was found.");
