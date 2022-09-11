@@ -56,6 +56,8 @@ public final class Scope {
 			String dir = cmd.getOptionValue("dir");
 			if (dir != null) {
 				workingDir = new File(dir);
+			} else {
+				workingDir = new File(System.getProperty("user.dir"));
 			}
 
 			// Check for .scope.xml
