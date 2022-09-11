@@ -1,41 +1,27 @@
 package com.scopelang;
 
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.net.URI;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.List;
+import java.nio.file.*;
 import java.util.stream.Collectors;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipOutputStream;
 
-import org.antlr.v4.runtime.CharStream;
-import org.antlr.v4.runtime.CharStreams;
-import org.antlr.v4.runtime.CommonTokenStream;
-import org.antlr.v4.runtime.ConsoleErrorListener;
+import org.antlr.v4.runtime.*;
 import org.antlr.v4.runtime.tree.ParseTree;
 import org.antlr.v4.runtime.tree.ParseTreeWalker;
-import org.apache.commons.cli.CommandLine;
-import org.apache.commons.cli.CommandLineParser;
-import org.apache.commons.cli.DefaultParser;
-import org.apache.commons.cli.HelpFormatter;
-import org.apache.commons.cli.Option;
-import org.apache.commons.cli.Options;
+import org.apache.commons.cli.*;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
-import org.apache.commons.io.IOUtils;
 
 import com.scopelang.error.ErrorHandler;
 import com.scopelang.fasm.FasmGenerator;
 import com.scopelang.project.ScopeXml;
 
+import net.lingala.zip4j.ZipFile;
+
 public final class Scope {
 	public static File workingDir = null;
 	public static File cacheDir = null;
+	public static File libDir = null;
 	public static ScopeXml projXml = null;
 
 	private Scope() {
@@ -99,11 +85,13 @@ public final class Scope {
 			// Read .scope.xml
 			projXml = new ScopeXml(xmlFile);
 
-			// Create .cache folder (if it doesn't exist and the mode has one)
+			// Create .cache and .lib folder (if it doesn't exist and the mode has one)
 			if (projXml.mode.equals("project")) {
 				cacheDir = new File(workingDir, ".cache");
+				libDir = new File(workingDir, ".lib");
 				try {
 					Files.createDirectories(cacheDir.toPath());
+					Files.createDirectories(libDir.toPath());
 				} catch (IOException e) {
 					Utils.error("Unable to create cache folder.");
 					if (!Utils.disableLog) {
@@ -113,6 +101,10 @@ public final class Scope {
 				}
 			}
 
+			// Solve libs
+			projXml.solveLibraries();
+
+			// Build/run or whatever
 			String mode = cmd.getArgs()[0];
 			switch (mode) {
 				case "build":
@@ -143,6 +135,7 @@ public final class Scope {
 						try {
 							// Delete .cache folder
 							FileUtils.deleteDirectory(cacheDir);
+							FileUtils.deleteDirectory(libDir);
 						} catch (IOException e) {
 							Utils.error("Could not delete cache folder.");
 							if (!Utils.disableLog) {
@@ -249,39 +242,22 @@ public final class Scope {
 
 		// Package into a zip
 		try {
-			compressFolder(workingDir.getPath(), new File(workingDir, name + ".zip").getPath());
+			// Get all valid files
+			var files = Files.find(Paths.get(workingDir.toURI()), Integer.MAX_VALUE,
+				(path, fileAttr) -> {
+					var n = path.getFileName().toString();
+					boolean a = n.endsWith(".scope") || n.endsWith(".scopelib") || n.equals(".scope.xml");
+					return a && fileAttr.isRegularFile();
+				}).map(i -> i.toFile());
+
+			// Zip it up
+			try (var z = new ZipFile(new File(workingDir, name + ".zip"))) {
+				z.addFiles(files.collect(Collectors.toList()));
+			}
 		} catch (Exception e) {
 			Utils.error("Could not package library into a zip.");
 			if (!Utils.disableLog) {
 				e.printStackTrace();
-			}
-		}
-	}
-
-	// https://stackoverflow.com/questions/23318383/compress-directory-into-a-zipfile-with-commons-io
-	private static void compressFolder(String sourceDir, String outputFile) throws IOException {
-		try (ZipOutputStream zipOutputStream = new ZipOutputStream(new FileOutputStream(outputFile))) {
-			compressDirectoryToZipFile((new File(sourceDir)).toURI(), new File(sourceDir), zipOutputStream);
-		}
-	}
-
-	private static void compressDirectoryToZipFile(URI basePath, File dir, ZipOutputStream out) throws IOException {
-		List<File> fileList = Files.list(Paths.get(dir.getAbsolutePath())).map(Path::toFile)
-			.collect(Collectors.toList());
-		for (File file : fileList) {
-			// Skip all non-important files
-			var n = file.getName();
-			if (!n.endsWith(".scope") && !n.endsWith(".scopelib") && !n.equals(".scope.xml")) {
-				continue;
-			}
-
-			if (file.isDirectory()) {
-				compressDirectoryToZipFile(basePath, file, out);
-			} else {
-				out.putNextEntry(new ZipEntry(basePath.relativize(file.toURI()).getPath()));
-				try (FileInputStream in = new FileInputStream(file)) {
-					IOUtils.copy(in, out);
-				}
 			}
 		}
 	}

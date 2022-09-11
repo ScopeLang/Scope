@@ -54,10 +54,13 @@ public class Preprocessor {
 
 			// Get the file
 			if (fileName.contains(":")) {
+				// Get the library
 				String libName = fileName.substring(0, fileName.indexOf(":"));
-				int index = Scope.projXml.libraries.indexOf(libName);
-				if (index != -1) {
-					String libLoc = Scope.projXml.rawLibraries.get(index);
+				var lib = Scope.projXml.libraryInfoByName(libName);
+
+				// Add to ImportManager
+				if (lib != null) {
+					String libLoc = lib.path;
 					File importedFile = new File(libLoc,
 						fileName.substring(fileName.indexOf(":") + 1, fileName.length()));
 					ImportManager.addLib(libName, importedFile);

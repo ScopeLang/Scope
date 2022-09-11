@@ -1,21 +1,36 @@
 package com.scopelang.project;
 
 import java.io.File;
+import java.net.URL;
 import java.util.ArrayList;
 
 import javax.xml.parsers.*;
+
+import org.apache.commons.codec.digest.DigestUtils;
+import org.apache.commons.io.FileUtils;
 import org.w3c.dom.Document;
 import org.w3c.dom.NodeList;
 
 import com.scopelang.Scope;
 import com.scopelang.Utils;
 
+import net.lingala.zip4j.ZipFile;
+
 public class ScopeXml {
+	public class LibraryInfo {
+		public String type;
+		public String path;
+		public String name;
+
+		public LibraryInfo() {
+
+		}
+	}
+
 	public String mode = null;
 	public File mainFile = null;
 	public String name = null;
-	public ArrayList<String> rawLibraries = new ArrayList<>();
-	public ArrayList<String> libraries = new ArrayList<>();
+	public ArrayList<LibraryInfo> libraries = new ArrayList<>();
 
 	public ScopeXml(File file) {
 		try {
@@ -97,23 +112,123 @@ public class ScopeXml {
 		// <library>
 		NodeList libs = document.getElementsByTagName("library");
 		for (int i = 0; i < libs.getLength(); i++) {
+			// Get the type
+			String type = "file";
+			var typeAttrib = libs.item(i).getAttributes().getNamedItem("type");
+			if (typeAttrib != null) {
+				type = typeAttrib.getTextContent();
+			}
+
+			// Check the type
+			if (!type.equals("file") && !type.equals("remote")) {
+				Utils.error("Invalid library type `" + type + "`.",
+					"Try one of the following options: file, remote");
+				throw new Exception();
+			}
+
+			// Get the path
 			String path = libs.item(i).getTextContent();
 
-			if (path == null || path.equals("") || path.equals(".")) {
-				Utils.error("Invalid library path!");
-				throw new Exception();
+			if (type.equals("file")) {
+				// Check the path (if file)
+				if (path == null || path.equals("") || path.equals(".")) {
+					Utils.error("Invalid library path!");
+					throw new Exception();
+				}
 			}
 
-			rawLibraries.add(path);
+			// Create library info
+			LibraryInfo lib = new LibraryInfo();
+			lib.type = type;
+			lib.path = path;
 
-			File f = new File(Scope.workingDir, path + File.separator + ".scope.xml");
+			// Done!
+			libraries.add(lib);
+		}
+	}
+
+	public void solveLibraries() {
+		boolean errored = false;
+
+		for (var lib : libraries) {
+			// Download and extract library if needed
+			if (lib.type.equals("remote")) {
+				// Check if the library is already downloaded
+				String urlMd5 = DigestUtils.md5Hex(lib.path.getBytes());
+				File expectedFolder = new File(Scope.libDir, urlMd5);
+
+				// If not, download it
+				if (!expectedFolder.exists()) {
+					if (!downloadLib(lib.path, expectedFolder)) {
+						errored = true;
+						continue;
+					}
+				}
+
+				// Then, set the path correctly
+				lib.path = Utils.pathRelativeToWorkingDir(expectedFolder.toPath()).toString();
+			}
+
+			// Get the name
+			File f = new File(Scope.workingDir, lib.path + File.separator + ".scope.xml");
 			if (!f.exists()) {
-				Utils.error("`" + path + "` is an invalid library.",
+				Utils.error("`" + lib.path + "` is an invalid library.",
 					"No `.scope.xml` file was found.");
-				throw new Exception();
+				errored = true;
+				continue;
 			}
 			ScopeXml xml = new ScopeXml(f);
-			libraries.add(xml.name);
+			lib.name = xml.name;
 		}
+
+		if (errored) {
+			Utils.forceExit();
+		}
+	}
+
+	private static boolean downloadLib(String path, File expectedFolder) {
+		Utils.log("Downloading `" + path + "`...");
+
+		// Download
+		File zip = new File(Scope.cacheDir, "lib.zip");
+		try {
+			FileUtils.copyURLToFile(new URL(path), zip);
+		} catch (Exception e) {
+			Utils.error("Failed to download from `" + path + "`.",
+				"Is the URL correct? Are you using the right library type?");
+			if (!Utils.disableLog) {
+				e.printStackTrace();
+			}
+			return false;
+		}
+
+		Utils.log("Extracting `" + path + "`...");
+
+		// Extract
+		try (ZipFile zipFile = new ZipFile(zip)) {
+			zipFile.extractAll(expectedFolder.getPath());
+		} catch (Exception e) {
+			Utils.error("Failed to extract zip from `" + path + "`.",
+				"Is the zip corrupt?");
+			if (!Utils.disableLog) {
+				e.printStackTrace();
+			}
+			return false;
+		}
+
+		// Delete zip
+		zip.delete();
+
+		return true;
+	}
+
+	public LibraryInfo libraryInfoByName(String name) {
+		for (var lib : libraries) {
+			if (lib.name.equals(name)) {
+				return lib;
+			}
+		}
+
+		return null;
 	}
 }
