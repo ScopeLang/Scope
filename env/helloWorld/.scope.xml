@@ -1,4 +1,5 @@
 <scope>
 	<mode>project</mode>
 	<main>HelloWorld.scope</main>
+	<library type="github">ScopeLang/stdlib</library>
 </scope>

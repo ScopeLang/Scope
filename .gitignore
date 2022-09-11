@@ -1,6 +1,7 @@
 target/
 *.out
 .cache/
+.lib/
 *.scopelib
 *.scopeasm
 env/temp
