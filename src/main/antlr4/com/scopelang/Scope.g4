@@ -40,9 +40,13 @@ parameters
 	: (parameter (',' parameter)*)?
 	;
 
+arguments
+	: (expr (',' expr)*)?
+	;
+
 // Inner statements
 invoke
-	: Identifier '(' expr? ')' EndLine
+	: Identifier '(' arguments ')' EndLine
 	;
 declare
 	: StringType Identifier '=' expr EndLine
@@ -66,7 +70,7 @@ expr
 	;
 atom
 	: literals
-	| Identifier '(' ')'
+	| Identifier '(' arguments ')'
 	| Identifier
 	;
 literals

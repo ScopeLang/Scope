@@ -5,6 +5,7 @@ import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
+import java.util.List;
 
 import org.antlr.v4.runtime.Token;
 import org.apache.commons.io.IOUtils;
@@ -16,8 +17,6 @@ import com.scopelang.metadata.ImportManager;
 
 public class FasmGenerator extends ScopeBaseListener {
 	private static final String[] argRegisters = {
-		"rdi",
-		"rsi",
 		"rdx",
 		"rcx",
 		"r8",
@@ -222,6 +221,9 @@ public class FasmGenerator extends ScopeBaseListener {
 
 		localVariables.clear();
 
+		write("push QWORD [vlist_end]");
+		write("push QWORD [vlist]");
+
 		// Error if there are too many parameters
 		var params = ctx.parameters().parameter();
 		if (params.size() > argRegisters.length) {
@@ -232,9 +234,11 @@ public class FasmGenerator extends ScopeBaseListener {
 		}
 
 		// Push arguments as local variables
-		for (int i = 0; i < params.size() && i < argRegisters.length; i++) {
+		for (int i = 0; i < params.size(); i++) {
 			var param = params.get(i);
 			var name = param.Identifier().getText();
+
+			// Check for duplicate params
 			if (localVariables.containsKey(name)) {
 				Utils.error(locationOf(param.Identifier().getSymbol()),
 					"Parameter `" + name + "` was already defined in the function contract.",
@@ -244,25 +248,26 @@ public class FasmGenerator extends ScopeBaseListener {
 			}
 
 			localVariables.put(name, localVariables.size());
-			write("");
+			write("vlist_getptr rdi, " + argRegisters[i]);
+			write("vlist_getsize rsi, " + argRegisters[i]);
+			write("call vlist_append");
 		}
 
-		write("push QWORD [vlist_end]");
-		write("push QWORD [vlist]");
 		write("mov rax, QWORD [vlist_end]");
+		write("sub rax, " + params.size() * 16);
 		write("mov QWORD [vlist], rax");
 	}
 
 	@Override
 	public void exitFunction(FunctionContext ctx) {
 		String ident = ctx.Identifier().getText();
-		endFunction(ctx.typeName().VoidType() != null, ident.equals("main"));
+		writeFunctionEnd(ctx.typeName().VoidType() != null, ident.equals("main"));
 
 		indent--;
 		write("");
 	}
 
-	private void endFunction(boolean isVoid, boolean isMain) {
+	private void writeFunctionEnd(boolean isVoid, boolean isMain) {
 		if (isVoid) {
 			write("pop rax");
 			write("mov QWORD [vlist], rax");
@@ -301,7 +306,7 @@ public class FasmGenerator extends ScopeBaseListener {
 	public void exitInvoke(InvokeContext ctx) {
 		String ident = ctx.Identifier().getText();
 		if (ident.equals("print")) {
-			ExprEvaluator.eval(this, ctx.expr());
+			ExprEvaluator.eval(this, ctx.arguments().expr(0));
 			write("call print");
 		} else if (ident.equals("main")) {
 			Utils.error(locationOf(ctx.Identifier().getSymbol()),
@@ -318,17 +323,33 @@ public class FasmGenerator extends ScopeBaseListener {
 				"}");
 			errored = true;
 		} else {
-			write("call f_" + ident);
+			writeInvoke(ident, ctx.arguments().expr());
 		}
+	}
+
+	public void writeInvoke(String ident, List<ExprContext> exprs) {
+		// Push all of the arguments
+		for (int i = 0; i < exprs.size(); i++) {
+			ExprEvaluator.eval(this, exprs.get(i));
+			write("call vlist_append");
+			write("push rax");
+		}
+
+		// And then move them (to prevent conflicts)
+		for (int i = exprs.size() - 1; i >= 0; i--) {
+			write("pop " + argRegisters[i]);
+		}
+
+		write("call f_" + ident);
 	}
 
 	@Override
 	public void exitReturn(ReturnContext ctx) {
 		write("pop rax");
-		write("mov vlist, rax");
-		write("pop rax");
 		write("mov QWORD [vlist], rax");
+		write("pop rax");
+		write("mov QWORD [vlist_end], rax");
 		ExprEvaluator.eval(this, ctx.expr());
-		endFunction(false, false);
+		writeFunctionEnd(false, false);
 	}
 }

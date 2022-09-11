@@ -14,7 +14,7 @@ public final class AtomEvaluator {
 		} else if (ctx.Identifier() != null && ctx.LeftParen() != null && ctx.RightParen() != null) {
 			// Handle invoke
 			String name = ctx.Identifier().getText();
-			g.write("call f_" + name);
+			g.writeInvoke(name, ctx.arguments().expr());
 		} else if (ctx.Identifier() != null) {
 			// Handle variables
 			String name = ctx.Identifier().getText();
