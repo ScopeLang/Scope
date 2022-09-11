@@ -196,15 +196,24 @@ public final class Scope {
 		File asm = new File(cacheDir, baseName + ".scopeasm");
 		genAsm(mainFile, asm, false);
 
+		// Delete old exe (if exists)
+		File exe = new File(workingDir, baseName + ".out");
+		exe.delete();
+
 		// Convert ASM to executable
-		String exeName = new File(workingDir, baseName + ".out").getAbsolutePath();
+		String exeName = exe.getAbsolutePath();
 		Utils.log("Compiling executable to `" + exeName + "`.");
 		Utils.runCmdAndWait("fasm", asm.getAbsolutePath(), exeName);
 		Utils.runCmdAndWait("chmod", "+x", exeName);
 
 		// Run (if asked)
 		if (run) {
-			Utils.runCmdAndWait(true, exeName);
+			int exitCode = Utils.runCmdAndWait(true, exeName);
+
+			// Print warning if the exit code is not zero
+			if (exitCode != 0) {
+				Utils.log("Compiled program exited with non-zero exit code: " + exitCode);
+			}
 		}
 	}
 

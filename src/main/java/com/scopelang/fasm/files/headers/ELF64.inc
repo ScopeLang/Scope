@@ -32,7 +32,7 @@ macro movqd a, b {
 	else if a in <rcx>
 		mov ecx, b
 	else 
-		display "Invalid register for `movqd`"
+		display "Invalid register for `movqd`."
 	end if
 }
 
@@ -50,6 +50,21 @@ macro vlist_getsize o, index {
 	movqd o, DWORD [o]
 }
 
+; args: rdi ptr, rsi size
+; ret: rax vptr
+macro vlist_set index {
+	mov rax, QWORD [vlist]
+	lea rax, [rax + index * 16]
+	mov [rax], rsi
+	mov [rax + 8], rdi
+}
+
+; ret: rdi ptr, rsi size
+macro vlist_load ptr {
+	movqd rsi, DWORD [ptr]
+	mov rdi, QWORD [ptr + 8]
+}
+
 macro push [i] { push i }
 macro pop  [i] { pop  i }
 
@@ -59,9 +74,9 @@ segment readable writable
 
 ; The actual data of the vlist
 vlist_start rb VLIST_SIZE
-; The reference frame of the vlist
+; The start of the current reference frame
 vlist rb 8
-; The end of the vlist
+; The end of the current reference frame
 vlist_end rb 8
 
 curpkg rb 8
@@ -73,8 +88,8 @@ entry f_main
 
 init:
 	lea rax, [vlist_start]
-	mov QWORD [vlist_end], rax
 	mov QWORD [vlist], rax
+	mov QWORD [vlist_end], rax
 	call package_create
 	mov QWORD [curpkg], rax
 	ret
@@ -150,19 +165,5 @@ package_delete:
 	mov rsi, PACKAGE_SIZE ; Map size
 	mov rax, 11 ; sys_munmap
 	syscall
-	pop rsi
-	ret
-
-; args: rdi ptr, rsi size
-; ret: rax index
-vlist_append:
-	push rsi
-	mov rax, QWORD [vlist_end]
-	mov [rax], rsi
-	mov [rax + 8], rdi
-	mov rsi, QWORD [vlist]
-	sub rax, rsi
-	shr rax, 4 ; Divide by 16
-	add QWORD [vlist_end], 16
 	pop rsi
 	ret

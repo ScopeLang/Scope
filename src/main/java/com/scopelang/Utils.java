@@ -14,6 +14,15 @@ import org.apache.commons.text.similarity.LevenshteinDistance;
 import com.scopelang.error.ErrorLoc;
 
 public final class Utils {
+	public static final String[] ARG_REGS = {
+		"rdx",
+		"rcx",
+		"r8",
+		"r9",
+		"r10",
+		"r11"
+	};
+
 	public static boolean disableLog = false;
 
 	private Utils() {

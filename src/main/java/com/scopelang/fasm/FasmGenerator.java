@@ -4,8 +4,6 @@ import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.HashMap;
-import java.util.List;
 
 import org.antlr.v4.runtime.Token;
 import org.apache.commons.io.IOUtils;
@@ -16,26 +14,16 @@ import com.scopelang.error.ErrorLoc;
 import com.scopelang.metadata.ImportManager;
 
 public class FasmGenerator extends ScopeBaseListener {
-	private static final String[] argRegisters = {
-		"rdx",
-		"rcx",
-		"r8",
-		"r9",
-		"r10",
-		"r11"
-	};
-
 	private File sourceFile;
 	private PrintWriter writer;
 	private boolean libraryMode;
 
 	public TokenProcessor tokenProcessor;
 	public Preprocessor preprocessor;
-	public int indent = 0;
 	public boolean errored = false;
 	public String md5 = null;
 
-	public HashMap<String, Integer> localVariables = new HashMap<>();
+	public Codeblock codeblock = null;
 
 	private boolean mainFound = false;
 	private String stringAppend = "";
@@ -62,7 +50,6 @@ public class FasmGenerator extends ScopeBaseListener {
 		String date = DateTimeFormatter.ofPattern("yyyy/MM/dd hh:mm:ss a").format(LocalDateTime.now());
 		String filePath = Utils.pathRelativeToWorkingDir(sourceFile.toPath()).toString();
 
-		indent = 0;
 		write("; Generated at " + date);
 		write("");
 
@@ -190,10 +177,6 @@ public class FasmGenerator extends ScopeBaseListener {
 			return;
 		}
 
-		for (int i = 0; i < indent; i++) {
-			writer.print("\t");
-		}
-
 		writer.println(str);
 	}
 
@@ -210,36 +193,32 @@ public class FasmGenerator extends ScopeBaseListener {
 	public void enterFunction(FunctionContext ctx) {
 		String ident = ctx.Identifier().getText();
 
+		// Write function header
 		write(";@FUNC," + ctx.Identifier().getSymbol().getLine());
 		write("f_" + ident + ":");
-		indent++;
-
 		if (ident.equals("main")) {
 			mainFound = true;
-			write("call init");
+			write("\tcall init");
 		}
 
-		localVariables.clear();
-
-		write("push QWORD [vlist_end]");
-		write("push QWORD [vlist]");
+		codeblock = new Codeblock(this);
 
 		// Error if there are too many parameters
 		var params = ctx.parameters().parameter();
-		if (params.size() > argRegisters.length) {
+		if (params.size() > Utils.ARG_REGS.length) {
 			Utils.error(locationOf(ctx.start),
-				"A function cannot have more than " + argRegisters.length + " parmeters.",
-				"Having more than " + argRegisters.length + " parmeters is unreadable. Consider refactoring.");
+				"A function cannot have more than " + Utils.ARG_REGS.length + " parmeters.",
+				"Having more than " + Utils.ARG_REGS.length + " parmeters is unreadable. Consider refactoring.");
 			errored = true;
 		}
 
-		// Push arguments as local variables
+		// Set arguments as local variables
 		for (int i = 0; i < params.size(); i++) {
 			var param = params.get(i);
 			var name = param.Identifier().getText();
 
 			// Check for duplicate params
-			if (localVariables.containsKey(name)) {
+			if (codeblock.varExists(name)) {
 				Utils.error(locationOf(param.Identifier().getSymbol()),
 					"Parameter `" + name + "` was already defined in the function contract.",
 					"Try to keep parameter names concise and readable.");
@@ -247,48 +226,43 @@ public class FasmGenerator extends ScopeBaseListener {
 				continue;
 			}
 
-			localVariables.put(name, localVariables.size());
-			write("vlist_getptr rdi, " + argRegisters[i]);
-			write("vlist_getsize rsi, " + argRegisters[i]);
-			write("call vlist_append");
+			// Set variable
+			codeblock.appendArgument(name, Utils.ARG_REGS[i]);
 		}
-
-		write("mov rax, QWORD [vlist_end]");
-		write("sub rax, " + params.size() * 16);
-		write("mov QWORD [vlist], rax");
 	}
 
 	@Override
 	public void exitFunction(FunctionContext ctx) {
-		String ident = ctx.Identifier().getText();
-		writeFunctionEnd(ctx.typeName().VoidType() != null, ident.equals("main"));
-
-		indent--;
-		write("");
-	}
-
-	private void writeFunctionEnd(boolean isVoid, boolean isMain) {
-		if (isVoid) {
-			write("pop rax");
-			write("mov QWORD [vlist], rax");
-			write("pop rax");
-			write("mov QWORD [vlist_end], rax");
+		// Handle error
+		if (codeblock.errored) {
+			errored = true;
+			write("\t; This codeblock errored. Skipped write.");
+			codeblock = null;
+			return;
 		}
 
-		// Add program exit if main func, return otherwise
-		if (isMain) {
-			write("mov rdi, 0");
-			write("call exit");
-		} else {
-			write("ret");
+		// Implicitly add return statement (for void only)
+		if (ctx.typeName().VoidType() != null) {
+			String ident = ctx.Identifier().getText();
+			codeblock.startReturn();
+			if (ident.equals("main")) {
+				codeblock.add("mov rdi, 0");
+				codeblock.add("call exit");
+			}
+			codeblock.endReturn();
 		}
+
+		// Write in the codeblock
+		write(codeblock.toString());
+		codeblock = null;
 	}
 
 	@Override
 	public void exitDeclare(DeclareContext ctx) {
 		String ident = ctx.Identifier().getText();
 
-		if (localVariables.containsKey(ident)) {
+		// Error if the local variable already exists
+		if (codeblock.varExists(ident)) {
 			Utils.error(locationOf(ctx.Identifier().getSymbol()),
 				"Variable `" + ident + "` was already defined in this scope.",
 				"Try to keep variable names concise and readable.");
@@ -296,18 +270,16 @@ public class FasmGenerator extends ScopeBaseListener {
 			return;
 		}
 
-		localVariables.put(ident, localVariables.size());
-
-		ExprEvaluator.eval(this, ctx.expr());
-		write("call vlist_append");
+		ExprEvaluator.eval(codeblock, ctx.expr());
+		codeblock.varCreate(ident);
 	}
 
 	@Override
 	public void exitInvoke(InvokeContext ctx) {
 		String ident = ctx.Identifier().getText();
 		if (ident.equals("print")) {
-			ExprEvaluator.eval(this, ctx.arguments().expr(0));
-			write("call print");
+			ExprEvaluator.eval(codeblock, ctx.arguments().expr(0));
+			codeblock.add("call print");
 		} else if (ident.equals("main")) {
 			Utils.error(locationOf(ctx.Identifier().getSymbol()),
 				"The `main` function cannot be called manually.",
@@ -323,33 +295,14 @@ public class FasmGenerator extends ScopeBaseListener {
 				"}");
 			errored = true;
 		} else {
-			writeInvoke(ident, ctx.arguments().expr());
+			codeblock.addInvoke(ident, ctx.arguments().expr());
 		}
-	}
-
-	public void writeInvoke(String ident, List<ExprContext> exprs) {
-		// Push all of the arguments
-		for (int i = 0; i < exprs.size(); i++) {
-			ExprEvaluator.eval(this, exprs.get(i));
-			write("call vlist_append");
-			write("push rax");
-		}
-
-		// And then move them (to prevent conflicts)
-		for (int i = exprs.size() - 1; i >= 0; i--) {
-			write("pop " + argRegisters[i]);
-		}
-
-		write("call f_" + ident);
 	}
 
 	@Override
 	public void exitReturn(ReturnContext ctx) {
-		write("pop rax");
-		write("mov QWORD [vlist], rax");
-		write("pop rax");
-		write("mov QWORD [vlist_end], rax");
-		ExprEvaluator.eval(this, ctx.expr());
-		writeFunctionEnd(false, false);
+		codeblock.startReturn();
+		ExprEvaluator.eval(codeblock, ctx.expr());
+		codeblock.endReturn();
 	}
 }

@@ -4,3 +4,4 @@ target/
 *.scopelib
 *.scopeasm
 env/temp
+test.asm

@@ -7,27 +7,27 @@ public final class ExprEvaluator {
 	private ExprEvaluator() {
 	}
 
-	public static void eval(FasmGenerator g, ExprContext ctx) {
+	public static void eval(Codeblock cb, ExprContext ctx) {
 		if (ctx.atom() != null) {
 			// Handle atoms (variables, literals)
-			AtomEvaluator.eval(g, ctx.atom());
+			AtomEvaluator.eval(cb, ctx.atom());
 			return;
 		} else if (ctx.LeftParen() != null && ctx.RightParen() != null) {
 			// Handle parens
-			eval(g, ctx.expr(0));
+			eval(cb, ctx.expr(0));
 			return;
 		} else {
 			// Handle operators
-			if (evalOperator(g, ctx)) {
+			if (evalOperator(cb, ctx)) {
 				return;
 			}
 		}
 
 		Utils.error("Unhandled expression node.", "This is probably not your fault.");
-		g.errored = true;
+		cb.errored = true;
 	}
 
-	private static boolean evalOperator(FasmGenerator g, ExprContext ctx) {
+	private static boolean evalOperator(Codeblock cb, ExprContext ctx) {
 		if (ctx.Pow() != null) {
 			// return Operator.POW;
 		} else if (ctx.Mul() != null) {
@@ -35,11 +35,11 @@ public final class ExprEvaluator {
 		} else if (ctx.Div() != null) {
 			// return Operator.DIV;
 		} else if (ctx.Add() != null) {
-			eval(g, ctx.expr(1));
-			g.write("push rdi, rsi");
-			eval(g, ctx.expr(0));
-			g.write("pop rcx, rdx");
-			g.write("call concat");
+			eval(cb, ctx.expr(1));
+			cb.add("push rdi, rsi");
+			eval(cb, ctx.expr(0));
+			cb.add("pop rcx, rdx");
+			cb.add("call concat");
 
 			return true;
 		} else if (ctx.Sub() != null) {
