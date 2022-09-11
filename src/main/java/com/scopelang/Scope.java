@@ -57,6 +57,8 @@ public final class Scope {
 			printHelp(formatter, options);
 			return;
 		} else {
+			String mode = cmd.getArgs()[0];
+
 			// Set the working directory from the -d flag
 			String dir = cmd.getOptionValue("dir");
 			if (dir != null) {
@@ -102,10 +104,11 @@ public final class Scope {
 			}
 
 			// Solve libs
-			projXml.solveLibraries();
+			if (!mode.equals("clean")) {
+				projXml.solveLibraries();
+			}
 
 			// Build/run or whatever
-			String mode = cmd.getArgs()[0];
 			switch (mode) {
 				case "build":
 					if (projXml.mode.equals("project")) {

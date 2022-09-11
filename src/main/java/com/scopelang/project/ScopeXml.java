@@ -1,13 +1,16 @@
 package com.scopelang.project;
 
 import java.io.File;
+import java.net.HttpURLConnection;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 
 import javax.xml.parsers.*;
 
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.IOUtils;
 import org.w3c.dom.Document;
 import org.w3c.dom.NodeList;
 
@@ -120,7 +123,7 @@ public class ScopeXml {
 			}
 
 			// Check the type
-			if (!type.equals("file") && !type.equals("remote")) {
+			if (!type.equals("file") && !type.equals("remote") && !type.equals("github")) {
 				Utils.error("Invalid library type `" + type + "`.",
 					"Try one of the following options: file, remote");
 				throw new Exception();
@@ -151,6 +154,40 @@ public class ScopeXml {
 		boolean errored = false;
 
 		for (var lib : libraries) {
+			// Get the real URL of library if it is a github one
+			if (lib.type.equals("github")) {
+				try {
+					// Get repo info from API
+					URL url = new URL("https://api.github.com/repos/" + lib.path + "/releases/latest");
+					var con = (HttpURLConnection) url.openConnection();
+					con.setRequestMethod("GET");
+
+					// Get latest release info
+					String info = IOUtils.toString(con.getInputStream(), StandardCharsets.UTF_8);
+					int index = info.indexOf("\"browser_download_url\":");
+					if (index == -1) {
+						throw new Exception();
+					}
+
+					// Move "cursor"
+					index += 24;
+					int end = info.indexOf("\"", index);
+
+					// Set info
+					lib.path = info.substring(index, end);
+					lib.type = "remote";
+					Utils.log("Found release URL of `" + lib.path + "`.");
+				} catch (Exception e) {
+					Utils.error("Invalid github library `" + lib.path + "`.",
+						"Is it a public repo?");
+					if (!Utils.disableLog) {
+						e.printStackTrace();
+					}
+					errored = true;
+					continue;
+				}
+			}
+
 			// Download and extract library if needed
 			if (lib.type.equals("remote")) {
 				// Check if the library is already downloaded
