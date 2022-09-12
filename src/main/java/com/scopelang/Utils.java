@@ -53,6 +53,9 @@ public final class Utils {
 			return FileUtils.readFileToString(file, StandardCharsets.UTF_8);
 		} catch (Exception e) {
 			Utils.error("File `" + file + "` could not be read.", "Does `" + file + "` exist?");
+			if (!Utils.disableLog) {
+				e.printStackTrace();
+			}
 			Utils.forceExit();
 			return null;
 		}
@@ -64,9 +67,17 @@ public final class Utils {
 	}
 
 	public static File convertUncachedLibToCached(File file) {
-		String relative = pathRelativeToWorkingDir(file.toPath()).toString();
-		String baseName = FilenameUtils.removeExtension(relative);
-		return new File(Scope.cacheDir, baseName + ".scopelib");
+		if (file.getPath().startsWith(".lib/")) {
+			// If we are in the .lib folder, just add .scopelib
+			String baseName = FilenameUtils.removeExtension(file.getPath());
+			return new File(baseName + ".scopelib");
+		} else {
+			// Otherwise, get it from the cache folder
+			System.out.println(file.getPath());
+			String relative = pathRelativeToWorkingDir(file.toPath()).toString();
+			String baseName = FilenameUtils.removeExtension(relative);
+			return new File(Scope.cacheDir, baseName + ".scopelib");
+		}
 	}
 
 	public static String hashOf(File file) {
