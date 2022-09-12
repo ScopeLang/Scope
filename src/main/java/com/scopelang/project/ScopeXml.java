@@ -154,8 +154,12 @@ public class ScopeXml {
 		boolean errored = false;
 
 		for (var lib : libraries) {
+			// This stuff is for remote/github only
+			String pathMd5 = DigestUtils.md5Hex(lib.path.getBytes());
+			File expectedFolder = new File(Scope.libDir, pathMd5);
+
 			// Get the real URL of library if it is a github one
-			if (lib.type.equals("github")) {
+			if (lib.type.equals("github") && !expectedFolder.exists()) {
 				try {
 					// Get repo info from API
 					URL url = new URL("https://api.github.com/repos/" + lib.path + "/releases/latest");
@@ -189,20 +193,18 @@ public class ScopeXml {
 			}
 
 			// Download and extract library if needed
-			if (lib.type.equals("remote")) {
-				// Check if the library is already downloaded
-				String urlMd5 = DigestUtils.md5Hex(lib.path.getBytes());
-				File expectedFolder = new File(Scope.libDir, urlMd5);
-
-				// If not, download it
+			if (lib.type.equals("remote") && !expectedFolder.exists()) {
+				// If not installed, download it
 				if (!expectedFolder.exists()) {
 					if (!downloadLib(lib.path, expectedFolder)) {
 						errored = true;
 						continue;
 					}
 				}
+			}
 
-				// Then, set the path correctly
+			// Set path correctly if remote
+			if (lib.type.equals("remote") || lib.type.equals("github")) {
 				lib.path = Utils.pathRelativeToWorkingDir(expectedFolder.toPath()).toString();
 			}
 
