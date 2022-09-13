@@ -243,18 +243,23 @@ public final class Scope {
 			}
 		}
 
+		// Delete old zip file
+		var zipFile = new File(workingDir, name + ".zip");
+		zipFile.delete();
+
 		// Package into a zip
 		try {
 			// Get all valid files
 			var files = Files.find(Paths.get(workingDir.toURI()), Integer.MAX_VALUE,
 				(path, fileAttr) -> {
 					var n = path.getFileName().toString();
-					boolean a = n.endsWith(".scope") || n.endsWith(".scopelib") || n.equals("scope.xml");
+					boolean a = n.endsWith(".scope") || n.endsWith(".scopelib") || n.equals("scope.xml")
+						|| n.equalsIgnoreCase("LICENSE");
 					return a && fileAttr.isRegularFile();
 				}).map(i -> i.toFile());
 
 			// Zip it up
-			try (var z = new ZipFile(new File(workingDir, name + ".zip"))) {
+			try (var z = new ZipFile(zipFile)) {
 				z.addFiles(files.collect(Collectors.toList()));
 			}
 		} catch (Exception e) {
