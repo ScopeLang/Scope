@@ -70,7 +70,7 @@ public final class Utils {
 		if (file.getPath().startsWith(".lib/")) {
 			// If we are in the .lib folder, just add .scopelib
 			String baseName = FilenameUtils.removeExtension(file.getPath());
-			return new File(baseName + ".scopelib");
+			return new File(Scope.workingDir, baseName + ".scopelib");
 		} else {
 			// Otherwise, get it from the cache folder
 			System.out.println(file.getPath());
