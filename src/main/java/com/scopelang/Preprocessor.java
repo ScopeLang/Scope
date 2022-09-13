@@ -45,7 +45,7 @@ public class Preprocessor {
 			String fileName = text.substring(i + 1, stringEnd);
 			if (fileName.contains(".")) {
 				Utils.error("Imported files cannot have a `.` in them!",
-					"All import statments are relative to the project `.scope.xml` and do not",
+					"All import statments are relative to the project `scope.xml` and do not",
 					"require the `.scope` extension.");
 				Utils.forceExit();
 				return;
@@ -66,7 +66,7 @@ public class Preprocessor {
 					ImportManager.addLib(libName, importedFile);
 				} else {
 					Utils.error("Library with name `" + libName + "` was not added to the project.",
-						"To import this library, add the following to your `.scope.xml`:",
+						"To import this library, add the following to your `scope.xml`:",
 						"<library>" + libName + "</library>");
 					Utils.forceExit();
 					return;

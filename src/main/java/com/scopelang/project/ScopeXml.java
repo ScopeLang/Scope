@@ -39,7 +39,7 @@ public class ScopeXml {
 		try {
 			parse(file);
 		} catch (Exception e) {
-			Utils.error("Could not parse `.scope.xml`!", "Are there any syntax errors?");
+			Utils.error("Could not parse `scope.xml`!", "Are there any syntax errors?");
 			if (!Utils.disableLog) {
 				e.printStackTrace();
 			}
@@ -56,7 +56,7 @@ public class ScopeXml {
 		// <scope>
 		document.normalize();
 		if (!document.getDocumentElement().getNodeName().equals("scope")) {
-			Utils.error("`.scope.xml` document node must be named `scope`.",
+			Utils.error("`scope.xml` document node must be named `scope`.",
 				"The document node is instead named `" + document.getDocumentElement().getNodeName() + "`.");
 			throw new Exception();
 		}
@@ -64,7 +64,7 @@ public class ScopeXml {
 		// <mode>
 		NodeList modeNode = document.getElementsByTagName("mode");
 		if (modeNode.getLength() != 1) {
-			Utils.error("There must be exactly 1 node named `mode` in `.scope.xml`.",
+			Utils.error("There must be exactly 1 node named `mode` in `scope.xml`.",
 				"Try adding the following or remove extras:",
 				"<mode>project</mode>");
 			throw new Exception();
@@ -83,7 +83,7 @@ public class ScopeXml {
 				// <main>
 				NodeList mainNode = document.getElementsByTagName("main");
 				if (mainNode.getLength() != 1) {
-					Utils.error("There must be exactly 1 node named `main` in `.scope.xml`.",
+					Utils.error("There must be exactly 1 node named `main` in `scope.xml`.",
 						"Try adding the following or remove extras:",
 						"<main>HelloWorld.scope</main>");
 					throw new Exception();
@@ -102,7 +102,7 @@ public class ScopeXml {
 				// <name>
 				NodeList nameNode = document.getElementsByTagName("name");
 				if (nameNode.getLength() != 1) {
-					Utils.error("There must be exactly 1 node named `name` in `.scope.xml`.",
+					Utils.error("There must be exactly 1 node named `name` in `scope.xml`.",
 						"Try adding the following or remove extras:",
 						"<name>mylib</name>");
 					throw new Exception();
@@ -209,10 +209,10 @@ public class ScopeXml {
 			}
 
 			// Get the name
-			File f = new File(Scope.workingDir, lib.path + File.separator + ".scope.xml");
+			File f = new File(Scope.workingDir, lib.path + File.separator + "scope.xml");
 			if (!f.exists()) {
 				Utils.error("`" + lib.path + "` is an invalid library.",
-					"No `.scope.xml` file was found.");
+					"No `scope.xml` file was found.");
 				errored = true;
 				continue;
 			}

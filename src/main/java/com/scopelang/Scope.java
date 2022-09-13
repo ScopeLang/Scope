@@ -67,13 +67,13 @@ public final class Scope {
 				workingDir = new File(System.getProperty("user.dir"));
 			}
 
-			// Check for .scope.xml
-			File xmlFile = new File(workingDir, ".scope.xml");
+			// Check for scope.xml
+			File xmlFile = new File(workingDir, "scope.xml");
 			if (!xmlFile.exists()) {
-				Utils.error("`.scope.xml` does not exist!",
-					"The `.scope.xml` file stores information about your scope project.",
+				Utils.error("`scope.xml` does not exist!",
+					"The `scope.xml` file stores information about your scope project.",
 					"",
-					"As an example, create a file named `.scope.xml` and fill it with:",
+					"As an example, create a file named `scope.xml` and fill it with:",
 					"<scope>",
 					"\t<mode>project</mode>",
 					"\t<main>HelloWorld.scope</main>",
@@ -84,7 +84,7 @@ public final class Scope {
 				return;
 			}
 
-			// Read .scope.xml
+			// Read scope.xml
 			projXml = new ScopeXml(xmlFile);
 
 			// Create .cache and .lib folder (if it doesn't exist and the mode has one)
@@ -249,7 +249,7 @@ public final class Scope {
 			var files = Files.find(Paths.get(workingDir.toURI()), Integer.MAX_VALUE,
 				(path, fileAttr) -> {
 					var n = path.getFileName().toString();
-					boolean a = n.endsWith(".scope") || n.endsWith(".scopelib") || n.equals(".scope.xml");
+					boolean a = n.endsWith(".scope") || n.endsWith(".scopelib") || n.equals("scope.xml");
 					return a && fileAttr.isRegularFile();
 				}).map(i -> i.toFile());
 
