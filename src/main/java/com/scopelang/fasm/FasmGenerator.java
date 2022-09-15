@@ -28,6 +28,7 @@ public class FasmGenerator extends ScopeBaseListener {
 	private boolean mainFound = false;
 	private String stringAppend = "";
 	private boolean isFuncVoid = false;
+	private boolean returnFound = false;
 
 	public FasmGenerator(File sourceFile, File fileName, TokenProcessor tokenProcessor, Preprocessor preprocessor,
 		boolean libraryMode) {
@@ -232,6 +233,9 @@ public class FasmGenerator extends ScopeBaseListener {
 		}
 
 		isFuncVoid = ctx.typeName().VoidType() != null;
+
+		// If it is a void func, returns are implicit
+		returnFound = isFuncVoid;
 	}
 
 	@Override
@@ -242,6 +246,15 @@ public class FasmGenerator extends ScopeBaseListener {
 			write("\t; This codeblock errored. Skipped write.");
 			codeblock = null;
 			return;
+		}
+
+		// Handle return error
+		if (!returnFound) {
+			Utils.error(locationOf(ctx.start),
+				"A non-void function has no return statement.",
+				"Change the function return type to void or add a return statement like so:",
+				"ret <my-value-here>;");
+			errored = true;
 		}
 
 		// Implicitly add return statement (for void only)
@@ -311,6 +324,8 @@ public class FasmGenerator extends ScopeBaseListener {
 			errored = true;
 			return;
 		}
+
+		returnFound = true;
 
 		codeblock.startReturn();
 		ExprEvaluator.eval(codeblock, ctx.expr());
