@@ -27,6 +27,7 @@ public class FasmGenerator extends ScopeBaseListener {
 
 	private boolean mainFound = false;
 	private String stringAppend = "";
+	private boolean isFuncVoid = false;
 
 	public FasmGenerator(File sourceFile, File fileName, TokenProcessor tokenProcessor, Preprocessor preprocessor,
 		boolean libraryMode) {
@@ -229,6 +230,8 @@ public class FasmGenerator extends ScopeBaseListener {
 			// Set variable
 			codeblock.appendArgument(name, Utils.ARG_REGS[i]);
 		}
+
+		isFuncVoid = ctx.typeName().VoidType() != null;
 	}
 
 	@Override
@@ -301,6 +304,14 @@ public class FasmGenerator extends ScopeBaseListener {
 
 	@Override
 	public void exitReturn(ReturnContext ctx) {
+		if (isFuncVoid) {
+			Utils.error(locationOf(ctx.start),
+				"Attemped to return a value in a void function.",
+				"Try changing the return type or removing this statement.");
+			errored = true;
+			return;
+		}
+
 		codeblock.startReturn();
 		ExprEvaluator.eval(codeblock, ctx.expr());
 		codeblock.endReturn();
