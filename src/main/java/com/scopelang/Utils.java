@@ -73,7 +73,6 @@ public final class Utils {
 			return new File(Scope.workingDir, baseName + ".scopelib");
 		} else {
 			// Otherwise, get it from the cache folder
-			System.out.println(file.getPath());
 			String relative = pathRelativeToWorkingDir(file.toPath()).toString();
 			String baseName = FilenameUtils.removeExtension(relative);
 			return new File(Scope.cacheDir, baseName + ".scopelib");

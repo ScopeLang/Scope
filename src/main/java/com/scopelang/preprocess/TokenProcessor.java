@@ -1,10 +1,12 @@
-package com.scopelang;
+package com.scopelang.preprocess;
 
 import java.io.File;
 import java.util.HashMap;
 
 import org.antlr.v4.runtime.*;
 
+import com.scopelang.ScopeLexer;
+import com.scopelang.Utils;
 import com.scopelang.error.ErrorLoc;
 
 public class TokenProcessor {

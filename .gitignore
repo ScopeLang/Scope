@@ -6,3 +6,4 @@ target/
 *.scopeasm
 env/temp
 test.asm
+*.zip

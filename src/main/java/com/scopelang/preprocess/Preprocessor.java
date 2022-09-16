@@ -1,9 +1,11 @@
-package com.scopelang;
+package com.scopelang.preprocess;
 
 import java.io.File;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import com.scopelang.Scope;
+import com.scopelang.Utils;
 import com.scopelang.metadata.ImportManager;
 
 public class Preprocessor {

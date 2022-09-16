@@ -16,7 +16,7 @@ public final class AtomEvaluator {
 		} else if (ctx.Identifier() != null && ctx.LeftParen() != null && ctx.RightParen() != null) {
 			// Handle invoke
 			String name = ctx.Identifier().getText();
-			cb.addInvoke(name, ctx.arguments().expr());
+			cb.addInvoke(name, ctx.arguments().expr(), cb.generator.locationOf(ctx.start));
 		} else if (ctx.Identifier() != null) {
 			// Handle variables
 			String name = ctx.Identifier().getText();
@@ -29,7 +29,7 @@ public final class AtomEvaluator {
 
 	private static void evalVariable(Codeblock cb, String name, Token symbol) {
 		if (!cb.varExists(name)) {
-			String closest = Utils.closestMatch(name, cb.varAllNames().stream());
+			String closest = Utils.closestMatch(name, cb.allVarNames().stream());
 
 			if (closest != null) {
 				Utils.error(cb.generator.locationOf(symbol),

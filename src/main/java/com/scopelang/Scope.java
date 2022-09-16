@@ -14,6 +14,9 @@ import org.apache.commons.io.FilenameUtils;
 
 import com.scopelang.error.ErrorHandler;
 import com.scopelang.fasm.FasmGenerator;
+import com.scopelang.preprocess.FuncGatherer;
+import com.scopelang.preprocess.Preprocessor;
+import com.scopelang.preprocess.TokenProcessor;
 import com.scopelang.project.ScopeXml;
 
 import net.lingala.zip4j.ZipFile;
@@ -197,8 +200,13 @@ public final class Scope {
 			Utils.forceExit();
 		}
 
+		// Gather info
+		FuncGatherer funcGatherer = new FuncGatherer();
+		ParseTreeWalker.DEFAULT.walk(funcGatherer, tree);
+
 		// Generate
-		FasmGenerator generator = new FasmGenerator(sourceFile, outputFile, tokenProcessor, preprocessor, libraryMode);
+		FasmGenerator generator = new FasmGenerator(sourceFile, outputFile, tokenProcessor,
+			preprocessor, funcGatherer, libraryMode);
 		generator.insertHeader();
 		ParseTreeWalker.DEFAULT.walk(generator, tree);
 		generator.finishGen();

@@ -12,6 +12,7 @@ import com.scopelang.*;
 import com.scopelang.ScopeParser.*;
 import com.scopelang.error.ErrorLoc;
 import com.scopelang.metadata.ImportManager;
+import com.scopelang.preprocess.*;
 
 public class FasmGenerator extends ScopeBaseListener {
 	private File sourceFile;
@@ -20,6 +21,7 @@ public class FasmGenerator extends ScopeBaseListener {
 
 	public TokenProcessor tokenProcessor;
 	public Preprocessor preprocessor;
+	public FuncGatherer funcGatherer;
 	public boolean errored = false;
 	public String md5 = null;
 
@@ -31,11 +33,12 @@ public class FasmGenerator extends ScopeBaseListener {
 	private boolean returnFound = false;
 
 	public FasmGenerator(File sourceFile, File fileName, TokenProcessor tokenProcessor, Preprocessor preprocessor,
-		boolean libraryMode) {
+		FuncGatherer funcGatherer, boolean libraryMode) {
 
 		this.sourceFile = sourceFile;
 		this.tokenProcessor = tokenProcessor;
 		this.preprocessor = preprocessor;
+		this.funcGatherer = funcGatherer;
 		this.libraryMode = libraryMode;
 
 		try {
@@ -194,9 +197,10 @@ public class FasmGenerator extends ScopeBaseListener {
 	@Override
 	public void enterFunction(FunctionContext ctx) {
 		String ident = ctx.Identifier().getText();
+		var returnType = ScopeType.fromTypeNameCtx(ctx.typeName());
 
 		// Write function header
-		write(";@FUNC," + ctx.Identifier().getSymbol().getLine());
+		write(";@FUNC," + ident + "," + returnType);
 		write("f_" + ident + ":");
 		if (ident.equals("main")) {
 			mainFound = true;
@@ -233,7 +237,7 @@ public class FasmGenerator extends ScopeBaseListener {
 			codeblock.appendArgument(name, Utils.ARG_REGS[i], type);
 		}
 
-		isFuncVoid = ctx.typeName().VoidType() != null;
+		isFuncVoid = returnType == ScopeType.VOID;
 
 		// If it is a void func, returns are implicit
 		returnFound = isFuncVoid;
@@ -301,22 +305,8 @@ public class FasmGenerator extends ScopeBaseListener {
 		if (ident.equals("print")) {
 			ExprEvaluator.eval(codeblock, ctx.arguments().expr(0));
 			codeblock.add("call print");
-		} else if (ident.equals("main")) {
-			Utils.error(locationOf(ctx.Identifier().getSymbol()),
-				"The `main` function cannot be called manually.",
-				"Try moving the contents of main into a different function",
-				"and calling that instead like so:",
-				"",
-				"func void myNewFunc() {",
-				"\t// The code that *was* in `main`",
-				"}",
-				"",
-				"func void main() {",
-				"\tmyNewFunc();",
-				"}");
-			errored = true;
 		} else {
-			codeblock.addInvoke(ident, ctx.arguments().expr());
+			codeblock.addInvoke(ident, ctx.arguments().expr(), locationOf(ctx.start));
 		}
 	}
 

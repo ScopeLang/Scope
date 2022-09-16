@@ -7,6 +7,8 @@ import java.util.Set;
 
 import com.scopelang.*;
 import com.scopelang.ScopeParser.ExprContext;
+import com.scopelang.error.ErrorLoc;
+import com.scopelang.preprocess.FuncGatherer;
 
 public class Codeblock {
 	public class VariableInfo {
@@ -51,7 +53,43 @@ public class Codeblock {
 		instructions.add(instruction);
 	}
 
-	public void addInvoke(String ident, List<ExprContext> exprs) {
+	public void addInvoke(String ident, List<ExprContext> exprs, ErrorLoc loc) {
+		// Check for errors
+		if (ident.equals("main")) {
+			Utils.error(loc,
+				"The `main` function cannot be called manually.",
+				"Try moving the contents of main into a different function",
+				"and calling that instead like so:",
+				"",
+				"func void myNewFunc() {",
+				"\t// The code that *was* in `main`",
+				"}",
+				"",
+				"func void main() {",
+				"\tmyNewFunc();",
+				"}");
+			errored = true;
+			return;
+		} else if (!FuncGatherer.exists(ident)) {
+			String closest = Utils.closestMatch(ident, FuncGatherer.allFuncNames().stream());
+
+			if (closest != null) {
+				Utils.error(loc,
+					"Function with name `" + ident + "` doesn't exist!",
+					"Did you mean `" + closest + "`?");
+			} else {
+				Utils.error(loc,
+					"Function with name `" + ident + "` doesn't exist!",
+					"You can define a function like this:",
+					"func void " + ident + "() {",
+					"\t// Your code here",
+					"}");
+			}
+
+			errored = true;
+			return;
+		}
+
 		// Push all of the arguments
 		for (int i = 0; i < exprs.size(); i++) {
 			ExprEvaluator.eval(this, exprs.get(i));
@@ -98,7 +136,7 @@ public class Codeblock {
 		add("vlist_getsize rsi, " + id);
 	}
 
-	public Set<String> varAllNames() {
+	public Set<String> allVarNames() {
 		return localVariables.keySet();
 	}
 

@@ -7,6 +7,7 @@ import org.apache.commons.io.FilenameUtils;
 
 import com.scopelang.Scope;
 import com.scopelang.Utils;
+import com.scopelang.preprocess.FuncGatherer;
 
 public final class ImportManager {
 	private static ArrayList<File> importedFiles = new ArrayList<>();
@@ -30,7 +31,13 @@ public final class ImportManager {
 		}
 	}
 
+	// Adds an external library
 	public static void addLib(String libName, File file) {
+		// Skip if library was already added
+		if (importedFiles.contains(file)) {
+			return;
+		}
+
 		// Get the .scopelib file
 		String path = FilenameUtils.removeExtension(file.toPath().toString()) + ".scopelib";
 		File libFile = new File(Scope.workingDir, path);
@@ -43,10 +50,24 @@ public final class ImportManager {
 			return;
 		}
 
+		// Analyze it
+		FasmAnalyzer analyzer = new FasmAnalyzer(libFile);
+
+		// TODO
+		// for (var data : analyzer.imports) {
+		// add(data.file);
+		// }
+
+		// Add library functions
+		for (var entry : analyzer.functions.entrySet()) {
+			FuncGatherer.addLibFunc(entry.getKey(), entry.getValue());
+		}
+
 		// Add it to the list
 		importedFiles.add(file);
 	}
 
+	// Adds a project file
 	public static void add(File file) {
 		// Check if a compiled version exists
 		File cached = Utils.convertUncachedLibToCached(file);
@@ -65,6 +86,11 @@ public final class ImportManager {
 				// Else, read the metadata and import manually
 				for (var data : analyzer.imports) {
 					add(data.file);
+				}
+
+				// Add library functions
+				for (var entry : analyzer.functions.entrySet()) {
+					FuncGatherer.addLibFunc(entry.getKey(), entry.getValue());
 				}
 			}
 		}
