@@ -229,7 +229,8 @@ public class FasmGenerator extends ScopeBaseListener {
 			}
 
 			// Set variable
-			codeblock.appendArgument(name, Utils.ARG_REGS[i]);
+			var type = ScopeType.fromTypeNameCtx(param.typeName());
+			codeblock.appendArgument(name, Utils.ARG_REGS[i], type);
 		}
 
 		isFuncVoid = ctx.typeName().VoidType() != null;
@@ -286,8 +287,12 @@ public class FasmGenerator extends ScopeBaseListener {
 			return;
 		}
 
+		// Get value and type
 		ExprEvaluator.eval(codeblock, ctx.expr());
-		codeblock.varCreate(ident);
+		var type = ScopeType.fromTypeNameCtx(ctx.typeName());
+
+		// Create!
+		codeblock.varCreate(ident, type);
 	}
 
 	@Override

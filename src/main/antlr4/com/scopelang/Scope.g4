@@ -31,6 +31,7 @@ outerStatement
 typeName
 	: VoidType
 	| StringType
+	| IntType
 	;
 
 parameter
@@ -49,7 +50,7 @@ invoke
 	: Identifier '(' arguments ')' EndLine
 	;
 declare
-	: StringType Identifier '=' expr EndLine
+	: typeName Identifier '=' expr EndLine
 	;
 return
 	: ReturnKeyword expr EndLine

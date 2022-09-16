@@ -5,16 +5,26 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Set;
 
-import com.scopelang.Utils;
+import com.scopelang.*;
 import com.scopelang.ScopeParser.ExprContext;
 
 public class Codeblock {
+	public class VariableInfo {
+		public int id;
+		public ScopeType type;
+
+		public VariableInfo(int id, ScopeType type) {
+			this.id = id;
+			this.type = type;
+		}
+	}
+
 	public boolean errored = false;
 
 	public FasmGenerator generator;
 
 	private int localVariableNext = 0;
-	private HashMap<String, Integer> localVariables = new HashMap<>();
+	private HashMap<String, VariableInfo> localVariables = new HashMap<>();
 
 	private ArrayList<String> instructions = new ArrayList<>();
 	private String output = "";
@@ -72,14 +82,18 @@ public class Codeblock {
 		return localVariables.containsKey(name);
 	}
 
-	public void varCreate(String name) {
+	public void varCreate(String name, ScopeType type) {
 		int id = localVariableNext++;
-		localVariables.put(name, id);
+		localVariables.put(name, new VariableInfo(id, type));
 		add("vlist_set " + id);
 	}
 
+	public ScopeType varGetType(String name) {
+		return localVariables.get(name).type;
+	}
+
 	public void varGet(String name) {
-		int id = localVariables.get(name);
+		int id = localVariables.get(name).id;
 		add("vlist_getptr rdi, " + id);
 		add("vlist_getsize rsi, " + id);
 	}
@@ -88,9 +102,9 @@ public class Codeblock {
 		return localVariables.keySet();
 	}
 
-	public void appendArgument(String name, String register) {
+	public void appendArgument(String name, String register, ScopeType type) {
 		add("vlist_load " + register);
-		varCreate(name);
+		varCreate(name, type);
 	}
 
 	@Override

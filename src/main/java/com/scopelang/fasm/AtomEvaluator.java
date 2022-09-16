@@ -51,12 +51,28 @@ public final class AtomEvaluator {
 
 	private static void evalLiteral(Codeblock cb, LiteralsContext ctx) {
 		if (ctx.StringLiteral() != null) {
+			// Get the string literal ID from the token process
 			String str = ctx.StringLiteral().getText();
 			int index = cb.generator.tokenProcessor.extactedStrings.get(str);
 
 			String name = "s_" + cb.generator.md5 + "_" + index;
 			cb.add("lea rdi, [" + name + "]");
 			cb.add("mov rsi, " + name + ".size");
+		} else if (ctx.IntLiteral() != null) {
+			String strValue = ctx.IntLiteral().getText();
+
+			// Check for overflow
+			try {
+				Integer.parseInt(strValue);
+			} catch (Exception e) {
+				Utils.error(cb.generator.locationOf(ctx.start),
+					"Integer literal value must be between -2147483648 and 2147483647.",
+					"Try using a `long` for bigger values.");
+				cb.errored = true;
+			}
+
+			cb.add("mov rdi, " + strValue);
+			cb.add("mov rsi, 4");
 		} else {
 			Utils.error("Unhandled literal node.", "This is probably not your fault.");
 			cb.errored = true;
