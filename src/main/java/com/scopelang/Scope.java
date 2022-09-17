@@ -231,6 +231,13 @@ public final class Scope {
 		Utils.runCmdAndWait("fasm", asm.getAbsolutePath(), exeName);
 		Utils.runCmdAndWait("chmod", "+x", exeName);
 
+		// Check if executable exists
+		if (!exe.exists()) {
+			Utils.error("FASM could not compile the assembly output!",
+				"Use the `-f` option for details.");
+			return;
+		}
+
 		// Run (if asked)
 		if (run) {
 			int exitCode = Utils.runCmdAndWait(true, exeName);

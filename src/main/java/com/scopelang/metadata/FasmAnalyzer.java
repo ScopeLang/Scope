@@ -83,7 +83,7 @@ public class FasmAnalyzer {
 			String[] data = text.substring(i, end).split(",");
 
 			// Add function to gatherer
-			var funcInfo = new FuncInfo(ScopeType.valueOf(data[1]));
+			var funcInfo = new FuncInfo(ScopeType.parseFromString(data[1]));
 			functions.put(data[0], funcInfo);
 		}
 	}

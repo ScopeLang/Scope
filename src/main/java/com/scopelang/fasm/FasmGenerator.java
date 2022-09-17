@@ -148,12 +148,6 @@ public class FasmGenerator extends ScopeBaseListener {
 			int end = text.indexOf(";@SEG_READ");
 			text = text.substring(start, end);
 
-			// Update function metadata
-			for (int i = text.indexOf(";@FUNC"); i != -1; i = text.indexOf(";@FUNC", i + 1)) {
-				int j = text.indexOf('\n', i);
-				text = text.substring(0, j) + "," + file + text.substring(j, text.length());
-			}
-
 			write(text);
 		}
 	}
@@ -237,7 +231,7 @@ public class FasmGenerator extends ScopeBaseListener {
 			codeblock.appendArgument(name, Utils.ARG_REGS[i], type);
 		}
 
-		isFuncVoid = returnType == ScopeType.VOID;
+		isFuncVoid = returnType.isVoid();
 
 		// If it is a void func, returns are implicit
 		returnFound = isFuncVoid;
