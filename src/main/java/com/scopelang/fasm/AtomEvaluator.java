@@ -78,8 +78,17 @@ public final class AtomEvaluator {
 			}
 
 			cb.add("mov rdi, " + strValue);
-			cb.add("mov rsi, 4");
+			cb.add("mov rsi, 0");
 			return ScopeType.INT;
+		} else if (ctx.BooleanLiteral() != null) {
+			if (ctx.BooleanLiteral().getText().equals("true")) {
+				cb.add("mov rdi, 1");
+			} else {
+				cb.add("mov rdi, 0");
+			}
+			cb.add("mov rsi, 0");
+
+			return ScopeType.BOOL;
 		} else {
 			Utils.error("Unhandled literal node.", "This is probably not your fault.");
 			cb.errored = true;

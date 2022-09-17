@@ -11,7 +11,7 @@ import com.scopelang.error.ErrorLoc;
 import com.scopelang.preprocess.FuncGatherer;
 
 public class Codeblock {
-	public class VariableInfo {
+	public static class VariableInfo {
 		public int id;
 		public ScopeType type;
 

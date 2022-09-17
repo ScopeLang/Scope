@@ -8,7 +8,7 @@ import com.scopelang.*;
 import com.scopelang.preprocess.*;
 
 public class FasmAnalyzer {
-	public class ImportMeta {
+	public static class ImportMeta {
 		public File file;
 		public String md5;
 

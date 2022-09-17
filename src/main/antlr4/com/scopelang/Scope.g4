@@ -33,6 +33,7 @@ typeName
 	: VoidType
 	| StringType
 	| IntType
+	| BoolType
 	;
 
 parameter
@@ -71,6 +72,7 @@ expr
 	| expr '^' expr
 	| expr ('*' | '/' | '%') expr
 	| expr ('+' | '-') expr
+	| expr ('==' | '!=') expr
 	| '(' expr ')'
 	| atom
 	;
@@ -83,6 +85,7 @@ literals
 	: IntLiteral
 	| DoubleLiteral
 	| StringLiteral
+	| BooleanLiteral
 	;
 
 // =============== //
@@ -103,6 +106,8 @@ Div: '/';
 Add: '+';
 Sub: '-';
 Mod: '%';
+Equals: '==';
+NotEquals: '!=';
 
 // Keywords
 FuncKeyword: 'func';
@@ -114,6 +119,7 @@ BreakpointKeyword: 'breakpoint';
 VoidType: 'void';
 IntType: 'int';
 StringType: 'string';
+BoolType: 'bool';
 
 // Literals
 IntLiteral
@@ -124,6 +130,10 @@ DoubleLiteral
 	;
 StringLiteral
 	: '"' .*? '"'
+	;
+BooleanLiteral
+	: 'true'
+	| 'false'
 	;
 
 // Literal fragments

@@ -6,6 +6,7 @@ public class ScopeType {
 	public static final ScopeType VOID = new ScopeType("void");
 	public static final ScopeType STRING = new ScopeType("string");
 	public static final ScopeType INT = new ScopeType("int");
+	public static final ScopeType BOOL = new ScopeType("bool");
 
 	public String name;
 
@@ -37,6 +38,8 @@ public class ScopeType {
 			return new ScopeType("string");
 		} else if (ctx.IntType() != null) {
 			return new ScopeType("int");
+		} else if (ctx.BoolType() != null) {
+			return new ScopeType("bool");
 		}
 
 		return new ScopeType("void");

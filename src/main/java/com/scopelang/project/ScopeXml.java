@@ -20,7 +20,7 @@ import com.scopelang.Utils;
 import net.lingala.zip4j.ZipFile;
 
 public class ScopeXml {
-	public class LibraryInfo {
+	public static class LibraryInfo {
 		public String type;
 		public String path;
 		public String name;
