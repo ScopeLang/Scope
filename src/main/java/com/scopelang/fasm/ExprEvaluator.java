@@ -1,5 +1,6 @@
 package com.scopelang.fasm;
 
+import com.scopelang.ScopeType;
 import com.scopelang.Utils;
 import com.scopelang.ScopeParser.*;
 
@@ -7,27 +8,30 @@ public final class ExprEvaluator {
 	private ExprEvaluator() {
 	}
 
-	public static void eval(Codeblock cb, ExprContext ctx) {
+	public static ScopeType eval(Codeblock cb, ExprContext ctx) {
 		if (ctx.atom() != null) {
 			// Handle atoms (variables, literals)
-			AtomEvaluator.eval(cb, ctx.atom());
-			return;
+			return AtomEvaluator.eval(cb, ctx.atom());
 		} else if (ctx.LeftParen() != null && ctx.RightParen() != null) {
 			// Handle parens
-			eval(cb, ctx.expr(0));
-			return;
+			return eval(cb, ctx.expr(0));
 		} else {
 			// Handle operators
-			if (evalOperator(cb, ctx)) {
-				return;
+			var ret = evalOperator(cb, ctx);
+			if (!ret.isVoid()) {
+				return ret;
 			}
 		}
 
-		Utils.error("Unhandled expression node.", "This is probably not your fault.");
-		cb.errored = true;
+		if (!cb.errored) {
+			Utils.error("Unhandled expression node.", "This is probably not your fault.");
+			cb.errored = true;
+		}
+
+		return ScopeType.VOID;
 	}
 
-	private static boolean evalOperator(Codeblock cb, ExprContext ctx) {
+	private static ScopeType evalOperator(Codeblock cb, ExprContext ctx) {
 		if (ctx.Pow() != null) {
 			// return Operator.POW;
 		} else if (ctx.Mul() != null) {
@@ -35,19 +39,28 @@ public final class ExprEvaluator {
 		} else if (ctx.Div() != null) {
 			// return Operator.DIV;
 		} else if (ctx.Add() != null) {
-			eval(cb, ctx.expr(1));
-			cb.add("push rdi, rsi");
-			eval(cb, ctx.expr(0));
-			cb.add("pop rcx, rdx");
-			cb.add("call concat");
+			var a = eval(cb, ctx.expr(1));
+			if (a.equals(ScopeType.STRING)) {
+				cb.add("push rdi, rsi");
+				var b = eval(cb, ctx.expr(0));
+				cb.add("pop rcx, rdx");
+				cb.add("call concat");
 
-			return true;
+				if (!b.equals(ScopeType.STRING)) {
+					Utils.error(cb.generator.locationOf(ctx.start),
+						"No operator `+` between `" + a + "` and `" + b + "`.");
+					cb.errored = true;
+					return ScopeType.VOID;
+				}
+			}
+
+			return ScopeType.STRING;
 		} else if (ctx.Sub() != null) {
 			// return Operator.SUB;
 		} else if (ctx.Mod() != null) {
 			// return Operator.MOD;
 		}
 
-		return false;
+		return ScopeType.VOID;
 	}
 }

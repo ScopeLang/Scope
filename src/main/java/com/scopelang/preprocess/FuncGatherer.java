@@ -31,6 +31,10 @@ public class FuncGatherer extends ScopeBaseListener {
 		return functions.containsKey(name);
 	}
 
+	public static ScopeType returnTypeOf(String name) {
+		return functions.get(name).returnType;
+	}
+
 	public static Set<String> allFuncNames() {
 		return functions.keySet();
 	}

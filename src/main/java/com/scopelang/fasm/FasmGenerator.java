@@ -278,7 +278,7 @@ public class FasmGenerator extends ScopeBaseListener {
 
 		// Error if the local variable already exists
 		if (codeblock.varExists(ident)) {
-			Utils.error(locationOf(ctx.Identifier().getSymbol()),
+			Utils.error(locationOf(ctx.start),
 				"Variable `" + ident + "` was already defined in this scope.",
 				"Try to keep variable names concise and readable.");
 			errored = true;
@@ -286,8 +286,17 @@ public class FasmGenerator extends ScopeBaseListener {
 		}
 
 		// Get value and type
-		ExprEvaluator.eval(codeblock, ctx.expr());
+		var exprType = ExprEvaluator.eval(codeblock, ctx.expr());
 		var type = ScopeType.fromTypeNameCtx(ctx.typeName());
+
+		// Check
+		if (!exprType.equals(type)) {
+			Utils.error(locationOf(ctx.start),
+				"The declaration type (`" + type + "`) and expression (`" + exprType + "`) don't match.",
+				"Try changing the declaration type to `" + exprType + "`.");
+			errored = true;
+			return;
+		}
 
 		// Create!
 		codeblock.varCreate(ident, type);

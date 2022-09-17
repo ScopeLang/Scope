@@ -3,6 +3,10 @@ package com.scopelang;
 import com.scopelang.ScopeParser.TypeNameContext;
 
 public class ScopeType {
+	public static final ScopeType VOID = new ScopeType("void");
+	public static final ScopeType STRING = new ScopeType("string");
+	public static final ScopeType INT = new ScopeType("int");
+
 	public String name;
 
 	public ScopeType(String name) {
@@ -16,6 +20,16 @@ public class ScopeType {
 	@Override
 	public String toString() {
 		return name;
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+		if (!(obj instanceof ScopeType)) {
+			return false;
+		}
+
+		ScopeType other = (ScopeType) obj;
+		return name.equals(other.name);
 	}
 
 	public static ScopeType fromTypeNameCtx(TypeNameContext ctx) {

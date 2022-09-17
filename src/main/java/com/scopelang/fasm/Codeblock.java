@@ -126,7 +126,7 @@ public class Codeblock {
 		add("vlist_set " + id);
 	}
 
-	public ScopeType varGetType(String name) {
+	public ScopeType varType(String name) {
 		return localVariables.get(name).type;
 	}
 

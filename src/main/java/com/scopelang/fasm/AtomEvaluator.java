@@ -2,32 +2,36 @@ package com.scopelang.fasm;
 
 import org.antlr.v4.runtime.Token;
 
+import com.scopelang.ScopeType;
 import com.scopelang.Utils;
 import com.scopelang.ScopeParser.*;
+import com.scopelang.preprocess.FuncGatherer;
 
 public final class AtomEvaluator {
 	private AtomEvaluator() {
 	}
 
-	public static void eval(Codeblock cb, AtomContext ctx) {
+	public static ScopeType eval(Codeblock cb, AtomContext ctx) {
 		if (ctx.literals() != null) {
 			// Handle literals
-			evalLiteral(cb, ctx.literals());
+			return evalLiteral(cb, ctx.literals());
 		} else if (ctx.Identifier() != null && ctx.LeftParen() != null && ctx.RightParen() != null) {
 			// Handle invoke
 			String name = ctx.Identifier().getText();
 			cb.addInvoke(name, ctx.arguments().expr(), cb.generator.locationOf(ctx.start));
+			return FuncGatherer.returnTypeOf(name);
 		} else if (ctx.Identifier() != null) {
 			// Handle variables
 			String name = ctx.Identifier().getText();
-			evalVariable(cb, name, ctx.Identifier().getSymbol());
+			return evalVariable(cb, name, ctx.Identifier().getSymbol());
 		} else {
 			Utils.error("Unhandled atom node.", "This is probably not your fault.");
 			cb.errored = true;
+			return ScopeType.VOID;
 		}
 	}
 
-	private static void evalVariable(Codeblock cb, String name, Token symbol) {
+	private static ScopeType evalVariable(Codeblock cb, String name, Token symbol) {
 		if (!cb.varExists(name)) {
 			String closest = Utils.closestMatch(name, cb.allVarNames().stream());
 
@@ -43,13 +47,14 @@ public final class AtomEvaluator {
 			}
 
 			cb.errored = true;
-			return;
+			return ScopeType.VOID;
 		}
 
 		cb.varGet(name);
+		return cb.varType(name);
 	}
 
-	private static void evalLiteral(Codeblock cb, LiteralsContext ctx) {
+	private static ScopeType evalLiteral(Codeblock cb, LiteralsContext ctx) {
 		if (ctx.StringLiteral() != null) {
 			// Get the string literal ID from the token process
 			String str = ctx.StringLiteral().getText();
@@ -58,6 +63,7 @@ public final class AtomEvaluator {
 			String name = "s_" + cb.generator.md5 + "_" + index;
 			cb.add("lea rdi, [" + name + "]");
 			cb.add("mov rsi, " + name + ".size");
+			return ScopeType.STRING;
 		} else if (ctx.IntLiteral() != null) {
 			String strValue = ctx.IntLiteral().getText();
 
@@ -73,9 +79,11 @@ public final class AtomEvaluator {
 
 			cb.add("mov rdi, " + strValue);
 			cb.add("mov rsi, 4");
+			return ScopeType.INT;
 		} else {
 			Utils.error("Unhandled literal node.", "This is probably not your fault.");
 			cb.errored = true;
+			return ScopeType.VOID;
 		}
 	}
 }
