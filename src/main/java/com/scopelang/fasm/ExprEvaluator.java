@@ -54,6 +54,20 @@ public final class ExprEvaluator {
 				}
 
 				return ScopeType.STRING;
+			} else if (a.equals(ScopeType.INT)) {
+				cb.add("push rdi");
+				var b = eval(cb, ctx.expr(0));
+				cb.add("pop rax");
+				cb.add("add rdi, rax");
+
+				if (!b.equals(ScopeType.INT)) {
+					Utils.error(cb.generator.locationOf(ctx.start),
+						"No operator `+` between `" + a + "` and `" + b + "`.");
+					cb.errored = true;
+					return ScopeType.VOID;
+				}
+
+				return ScopeType.INT;
 			}
 		} else if (ctx.Sub() != null) {
 			// return Operator.SUB;
