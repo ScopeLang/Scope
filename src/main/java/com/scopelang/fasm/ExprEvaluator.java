@@ -52,9 +52,9 @@ public final class ExprEvaluator {
 					cb.errored = true;
 					return ScopeType.VOID;
 				}
-			}
 
-			return ScopeType.STRING;
+				return ScopeType.STRING;
+			}
 		} else if (ctx.Sub() != null) {
 			// return Operator.SUB;
 		} else if (ctx.Mod() != null) {

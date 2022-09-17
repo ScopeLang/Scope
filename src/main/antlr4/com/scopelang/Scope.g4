@@ -23,6 +23,7 @@ innerStatement
 	: invoke
 	| declare
 	| return
+	| breakpoint
 	;
 outerStatement
 	: function
@@ -54,6 +55,9 @@ declare
 	;
 return
 	: ReturnKeyword expr EndLine
+	;
+breakpoint
+	: BreakpointKeyword EndLine
 	;
 
 // Outer statements
@@ -103,6 +107,7 @@ Mod: '%';
 FuncKeyword: 'func';
 ImportKeyword: 'import';
 ReturnKeyword: 'ret';
+BreakpointKeyword: 'breakpoint';
 
 // Primitive types
 VoidType: 'void';

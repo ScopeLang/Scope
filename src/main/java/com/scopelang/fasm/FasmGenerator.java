@@ -329,4 +329,9 @@ public class FasmGenerator extends ScopeBaseListener {
 		ExprEvaluator.eval(codeblock, ctx.expr());
 		codeblock.endReturn();
 	}
+
+	@Override
+	public void enterBreakpoint(BreakpointContext ctx) {
+		codeblock.add("int3");
+	}
 }
