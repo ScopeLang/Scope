@@ -32,7 +32,29 @@ public final class ExprEvaluator {
 	}
 
 	private static ScopeType evalOperator(Codeblock cb, ExprContext ctx) {
-		if (ctx.Pow() != null) {
+		if (ctx.LeftBracket() != null && ctx.RightBracket() != null) {
+			var a = eval(cb, ctx.expr(0));
+			if (a.equals(ScopeType.STRING)) {
+				cb.add("push rdi");
+				var b = eval(cb, ctx.expr(1));
+				cb.add("pop rax");
+				cb.add("add rax, rdi");
+				cb.add("mov al, BYTE [rax]");
+				cb.add("mov rdi, QWORD [curpkg]");
+				cb.add("mov BYTE [rdi], al");
+				cb.add("mov rsi, 1");
+				cb.add("add QWORD [curpkg], 1");
+
+				if (!b.equals(ScopeType.INT)) {
+					Utils.error(cb.generator.locationOf(ctx.start),
+						"No operator `[]` between `" + a + "` and `" + b + "`.");
+					cb.errored = true;
+					return ScopeType.VOID;
+				}
+
+				return ScopeType.STRING;
+			}
+		} else if (ctx.Pow() != null) {
 			// return Operator.POW;
 		} else if (ctx.Mul() != null) {
 			// return Operator.MUL;

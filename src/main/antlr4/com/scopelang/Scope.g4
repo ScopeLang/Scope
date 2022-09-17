@@ -67,7 +67,8 @@ function
 
 // Expressions
 expr
-	: expr '^' expr
+	: expr '[' expr ']'
+	| expr '^' expr
 	| expr ('*' | '/' | '%') expr
 	| expr ('+' | '-') expr
 	| '(' expr ')'
