@@ -68,6 +68,18 @@ public final class ExprEvaluator {
 			cb.add("setne al");
 			cb.add("movzx rdi, al");
 			return ScopeType.BOOL;
+		}),
+		new OperatorInfo(">", ScopeType.INT, ScopeType.INT, cb -> {
+			cb.add("cmp rdi, rdx");
+			cb.add("setg al");
+			cb.add("movzx rdi, al");
+			return ScopeType.BOOL;
+		}),
+		new OperatorInfo("<", ScopeType.INT, ScopeType.INT, cb -> {
+			cb.add("cmp rdi, rdx");
+			cb.add("setl al");
+			cb.add("movzx rdi, al");
+			return ScopeType.BOOL;
 		})
 	};
 
@@ -117,6 +129,10 @@ public final class ExprEvaluator {
 			opType = "==";
 		} else if (ctx.NotEquals() != null) {
 			opType = "!=";
+		} else if (ctx.GreaterThan() != null) {
+			opType = ">";
+		} else if (ctx.LessThan() != null) {
+			opType = "<";
 		}
 
 		var right = eval(cb, ctx.expr(1));

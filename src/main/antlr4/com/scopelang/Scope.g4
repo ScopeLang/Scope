@@ -87,7 +87,7 @@ expr
 	| expr '^' expr
 	| expr ('*' | '/' | '%') expr
 	| expr ('+' | '-') expr
-	| expr ('==' | '!=') expr
+	| expr ('==' | '!=' | '>' | '<') expr
 	| '(' expr ')'
 	| atom
 	;
@@ -123,6 +123,8 @@ Sub: '-';
 Mod: '%';
 Equals: '==';
 NotEquals: '!=';
+GreaterThan: '>';
+LessThan: '<';
 
 // Keywords
 FuncKeyword: 'func';
