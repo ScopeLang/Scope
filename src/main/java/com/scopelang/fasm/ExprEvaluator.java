@@ -37,7 +37,7 @@ public final class ExprEvaluator {
 			return ScopeType.INT;
 		}),
 		new OperatorInfo("*", ScopeType.INT, ScopeType.INT, cb -> {
-			cb.add("mul rdi, rdx");
+			cb.add("imul rdi, rdx");
 			return ScopeType.INT;
 		}),
 		new OperatorInfo("/", ScopeType.INT, ScopeType.INT, cb -> {
