@@ -24,6 +24,7 @@ innerStatement
 	| declare
 	| return
 	| breakpoint
+	| if
 	;
 outerStatement
 	: function
@@ -59,6 +60,12 @@ return
 	;
 breakpoint
 	: BreakpointKeyword EndLine
+	;
+if
+	: IfKeyword '(' expr ')' codeblock else?
+	;
+else
+	:	ElseKeyword codeblock
 	;
 
 // Outer statements
@@ -114,6 +121,8 @@ FuncKeyword: 'func';
 ImportKeyword: 'import';
 ReturnKeyword: 'ret';
 BreakpointKeyword: 'breakpoint';
+IfKeyword: 'if';
+ElseKeyword: 'else';
 
 // Primitive types
 VoidType: 'void';

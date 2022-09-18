@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Set;
+import java.util.Stack;
 
 import com.scopelang.*;
 import com.scopelang.ScopeParser.ExprContext;
@@ -28,9 +29,13 @@ public class Codeblock {
 	private int localVariableNext = 0;
 	private HashMap<String, VariableInfo> localVariables = new HashMap<>();
 
+	private int labelNext = 0;
+	private Stack<String> labelStack = new Stack<>();
+
 	private ArrayList<String> instructions = new ArrayList<>();
 	private String output = "";
-	private int indent = 1;
+
+	public int indent = 1;
 
 	public Codeblock(FasmGenerator generator) {
 		this.generator = generator;
@@ -42,14 +47,14 @@ public class Codeblock {
 			return;
 		}
 
-		for (int i = 0; i < indent; i++) {
-			output += "\t";
-		}
-
 		output += str + "\n";
 	}
 
 	public void add(String instruction) {
+		for (int i = 0; i < indent; i++) {
+			instruction = "\t" + instruction;
+		}
+
 		instructions.add(instruction);
 	}
 
@@ -145,16 +150,26 @@ public class Codeblock {
 		varCreate(name, type);
 	}
 
+	public String pushLabelName() {
+		String name = "l" + labelNext++;
+		labelStack.push(name);
+		return name;
+	}
+
+	public String popLabelName() {
+		return labelStack.pop();
+	}
+
 	@Override
 	public String toString() {
 		// Save old vlist values
-		write("push QWORD [vlist_end]");
-		write("push QWORD [vlist]");
+		write("\tpush QWORD [vlist_end]");
+		write("\tpush QWORD [vlist]");
 
 		// Move the vlist reference frame
-		write("mov rax, QWORD [vlist_end]");
-		write("mov QWORD [vlist], rax");
-		write("add QWORD [vlist_end], " + localVariableNext * 16);
+		write("\tmov rax, QWORD [vlist_end]");
+		write("\tmov QWORD [vlist], rax");
+		write("\tadd QWORD [vlist_end], " + localVariableNext * 16);
 
 		// Write the actual code
 		for (var instruction : instructions) {
