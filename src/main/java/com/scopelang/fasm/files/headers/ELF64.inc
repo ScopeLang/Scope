@@ -113,6 +113,8 @@ print:
 
 ; args: rdi from, rsi to, rdx size
 copy:
+	cmp rdx, 0
+	je .e
 	push rsi, rdi, rdx
 	add rdx, rdi
 	inc rdx
@@ -124,6 +126,7 @@ copy:
 		cmp rdi, rdx
 		jl .l
 	pop rdx, rdi, rsi
+	.e:
 	ret
 
 ; args: rdi ptr0, rsi size0, rdx ptr1, rcx size1

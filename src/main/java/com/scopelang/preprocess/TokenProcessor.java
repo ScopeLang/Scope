@@ -40,11 +40,9 @@ public class TokenProcessor {
 			if (token.getType() == ScopeLexer.StringLiteral) {
 				String str = token.getText();
 
-				// If empty string
+				// If empty string, skip
 				if (str.equals("\"\"")) {
-					Utils.error(locationOf(token), "Empty string literals are not allowed.",
-						"Consider using `null` instead.");
-					errored = true;
+					continue;
 				}
 
 				// If exists, skip

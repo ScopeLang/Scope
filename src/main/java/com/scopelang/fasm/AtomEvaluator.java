@@ -58,6 +58,14 @@ public final class AtomEvaluator {
 		if (ctx.StringLiteral() != null) {
 			// Get the string literal ID from the token process
 			String str = ctx.StringLiteral().getText();
+
+			// If empty, return nullptr
+			if (str.equals("\"\"")) {
+				cb.add("mov rdi, 0");
+				cb.add("mov rsi, 0");
+				return ScopeType.STRING;
+			}
+
 			int index = cb.generator.tokenProcessor.extactedStrings.get(str);
 
 			String name = "s_" + cb.generator.md5 + "_" + index;
