@@ -303,6 +303,37 @@ public class FasmGenerator extends ScopeBaseListener {
 	}
 
 	@Override
+	public void exitAssign(AssignContext ctx) {
+		String ident = ctx.Identifier().getText();
+
+		// Get value and type
+		var exprType = ExprEvaluator.eval(codeblock, ctx.expr());
+
+		// Error if the local variable doesn't exist
+		if (!codeblock.varExists(ident)) {
+			Utils.error(locationOf(ctx.start),
+				"Variable `" + ident + "` was not defined yet in this scope.",
+				"Change this statement to a declaration to fix this:",
+				exprType.toString() + " " + ident + " = " + ctx.expr().getText() + ";");
+			errored = true;
+			return;
+		}
+
+		// Check type
+		var varType = codeblock.varType(ident);
+		if (!exprType.equals(varType)) {
+			Utils.error(locationOf(ctx.start),
+				"The variable type (`" + varType + "`) and expression (`" + exprType + "`) don't match.",
+				"Are you assigning to the wrong variable?");
+			errored = true;
+			return;
+		}
+
+		// Assign!
+		codeblock.varAssign(ident);
+	}
+
+	@Override
 	public void exitInvoke(InvokeContext ctx) {
 		String ident = ctx.Identifier().getText();
 		if (ident.equals("print")) {
@@ -357,5 +388,26 @@ public class FasmGenerator extends ScopeBaseListener {
 	public void exitIf(IfContext ctx) {
 		codeblock.indent--;
 		codeblock.add("." + codeblock.popLabelName() + ":");
+	}
+
+	@Override
+	public void enterWhile(WhileContext ctx) {
+		codeblock.add("jmp ." + codeblock.pushLabelName());
+		codeblock.add("." + codeblock.pushLabelName() + ":");
+		codeblock.indent++;
+	}
+
+	@Override
+	public void exitWhile(WhileContext ctx) {
+		String codeLabel = codeblock.popLabelName();
+
+		codeblock.indent--;
+		codeblock.add("." + codeblock.popLabelName() + ":");
+		codeblock.indent++;
+
+		ExprEvaluator.eval(codeblock, ctx.expr());
+		codeblock.add("cmp rdi, 1");
+		codeblock.add("je ." + codeLabel);
+		codeblock.indent--;
 	}
 }

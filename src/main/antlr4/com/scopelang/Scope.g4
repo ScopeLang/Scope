@@ -22,9 +22,11 @@ outerStatments
 innerStatement
 	: invoke
 	| declare
+	| assign
 	| return
 	| breakpoint
 	| if
+	| while
 	;
 outerStatement
 	: function
@@ -55,6 +57,9 @@ invoke
 declare
 	: typeName Identifier '=' expr EndLine
 	;
+assign
+	: Identifier '=' expr EndLine
+	;
 return
 	: ReturnKeyword expr EndLine
 	;
@@ -65,7 +70,10 @@ if
 	: IfKeyword '(' expr ')' codeblock else?
 	;
 else
-	:	ElseKeyword codeblock
+	: ElseKeyword codeblock
+	;
+while
+	: WhileKeyword '(' expr ')' codeblock
 	;
 
 // Outer statements
@@ -123,6 +131,8 @@ ReturnKeyword: 'ret';
 BreakpointKeyword: 'breakpoint';
 IfKeyword: 'if';
 ElseKeyword: 'else';
+WhileKeyword: 'while';
+ForKeyword: 'for';
 
 // Primitive types
 VoidType: 'void';
