@@ -48,6 +48,14 @@ public final class ExprEvaluator {
 			cb.add("mov rdi, rax");
 			return ScopeType.INT;
 		}),
+		new OperatorInfo("%", ScopeType.INT, ScopeType.INT, cb -> {
+			cb.add("mov rax, rdi");
+			cb.add("mov rcx, rdx");
+			cb.add("cqo");
+			cb.add("idiv rcx");
+			cb.add("mov rdi, rdx");
+			return ScopeType.INT;
+		}),
 		new OperatorInfo("[]", ScopeType.STRING, ScopeType.INT, cb -> {
 			cb.add("add rdx, rdi");
 			cb.add("mov al, BYTE [rdx]");
