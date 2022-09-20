@@ -56,6 +56,10 @@ public final class ExprEvaluator {
 			cb.add("mov rdi, rdx");
 			return ScopeType.INT;
 		}),
+		new OperatorInfo("-n", ScopeType.INT, ScopeType.VOID, cb -> {
+			cb.add("neg rdi");
+			return ScopeType.INT;
+		}),
 		new OperatorInfo("+", ScopeType.DEC, ScopeType.DEC, cb -> {
 			writeFloatingPoint(cb, "fadd");
 			return ScopeType.DEC;
@@ -70,6 +74,14 @@ public final class ExprEvaluator {
 		}),
 		new OperatorInfo("/", ScopeType.DEC, ScopeType.DEC, cb -> {
 			writeFloatingPoint(cb, "fdiv");
+			return ScopeType.DEC;
+		}),
+		new OperatorInfo("-n", ScopeType.DEC, ScopeType.VOID, cb -> {
+			cb.add("mov QWORD [fptmp], rdi");
+			cb.add("fld QWORD [fptmp]");
+			cb.add("fchs");
+			cb.add("fstp QWORD [fptmp]");
+			cb.add("mov rdi, QWORD [fptmp]");
 			return ScopeType.DEC;
 		}),
 		new OperatorInfo("[]", ScopeType.STR, ScopeType.INT, cb -> {
@@ -172,7 +184,11 @@ public final class ExprEvaluator {
 		} else if (ctx.Add() != null) {
 			opType = "+";
 		} else if (ctx.Sub() != null) {
-			opType = "-";
+			if (ctx.expr().size() == 2) {
+				opType = "-";
+			} else {
+				opType = "-n";
+			}
 		} else if (ctx.Equals() != null) {
 			opType = "==";
 		} else if (ctx.NotEquals() != null) {
@@ -183,10 +199,20 @@ public final class ExprEvaluator {
 			opType = "<";
 		}
 
-		var right = eval(cb, ctx.expr(1));
-		cb.add("push rdi, rsi");
+		// Get right (if not unary)
+		var right = ScopeType.VOID;
+		if (!opType.equals("-n")) {
+			right = eval(cb, ctx.expr(1));
+			cb.add("push rdi, rsi");
+		}
+
+		// Get left (only if unary)
 		var left = eval(cb, ctx.expr(0));
-		cb.add("pop rcx, rdx");
+
+		// Pop if not unary
+		if (!opType.equals("-n")) {
+			cb.add("pop rcx, rdx");
+		}
 
 		for (var op : operators) {
 			if (!op.operator.equals(opType)) {
