@@ -72,22 +72,31 @@ public final class AtomEvaluator {
 			cb.add("lea rdi, [" + name + "]");
 			cb.add("mov rsi, " + name + ".size");
 			return ScopeType.STR;
-		} else if (ctx.IntLiteral() != null) {
-			String strValue = ctx.IntLiteral().getText();
+		} else if (ctx.IntegerLiteral() != null) {
+			String strValue = ctx.IntegerLiteral().getText();
 
 			// Check for overflow
 			try {
-				Integer.parseInt(strValue);
+				Long.parseLong(strValue);
 			} catch (Exception e) {
 				Utils.error(cb.generator.locationOf(ctx.start),
-					"Integer literal value must be between -2147483648 and 2147483647.",
+					"Integer literal value must be between -9,223,372,036,854,775,808 and 9,223,372,036,854,775,807.",
 					"Try using a `long` for bigger values.");
 				cb.errored = true;
 			}
 
-			cb.add("mov rdi, " + strValue);
+			cb.add("mov rdi, QWORD " + strValue);
 			cb.add("mov rsi, 0");
 			return ScopeType.INT;
+		} else if (ctx.DecimalLiteral() != null) {
+			String strValue = ctx.DecimalLiteral().getText();
+			if (strValue.startsWith(".")) {
+				strValue = "0" + strValue;
+			}
+
+			cb.add("mov rdi, QWORD " + strValue);
+			cb.add("mov rsi, 0");
+			return ScopeType.DEC;
 		} else if (ctx.BooleanLiteral() != null) {
 			if (ctx.BooleanLiteral().getText().equals("true")) {
 				cb.add("mov rdi, 1");

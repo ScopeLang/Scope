@@ -79,6 +79,10 @@ vlist rb 8
 ; The end of the current reference frame
 vlist_end rb 8
 
+; Floating point temporary memory location
+fptmp rb 8
+
+; The pointer to the current package
 curpkg rb 8
 
 ; Code ;

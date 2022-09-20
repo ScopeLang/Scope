@@ -1,8 +1,8 @@
 package com.scopelang.fasm;
 
+import com.scopelang.ScopeParser.ExprContext;
 import com.scopelang.ScopeType;
 import com.scopelang.Utils;
-import com.scopelang.ScopeParser.*;
 
 public final class ExprEvaluator {
 	private abstract interface IOperatorAction {
@@ -56,6 +56,22 @@ public final class ExprEvaluator {
 			cb.add("mov rdi, rdx");
 			return ScopeType.INT;
 		}),
+		new OperatorInfo("+", ScopeType.DEC, ScopeType.DEC, cb -> {
+			writeFloatingPoint(cb, "fadd");
+			return ScopeType.DEC;
+		}),
+		new OperatorInfo("-", ScopeType.DEC, ScopeType.DEC, cb -> {
+			writeFloatingPoint(cb, "fsub");
+			return ScopeType.DEC;
+		}),
+		new OperatorInfo("*", ScopeType.DEC, ScopeType.DEC, cb -> {
+			writeFloatingPoint(cb, "fmul");
+			return ScopeType.DEC;
+		}),
+		new OperatorInfo("/", ScopeType.DEC, ScopeType.DEC, cb -> {
+			writeFloatingPoint(cb, "fdiv");
+			return ScopeType.DEC;
+		}),
 		new OperatorInfo("[]", ScopeType.STR, ScopeType.INT, cb -> {
 			cb.add("add rdx, rdi");
 			cb.add("mov al, BYTE [rdx]");
@@ -86,6 +102,30 @@ public final class ExprEvaluator {
 		new OperatorInfo("<", ScopeType.INT, ScopeType.INT, cb -> {
 			cb.add("cmp rdi, rdx");
 			cb.add("setl al");
+			cb.add("movzx rdi, al");
+			return ScopeType.BOOL;
+		}),
+		new OperatorInfo(">", ScopeType.DEC, ScopeType.DEC, cb -> {
+			cb.add("mov QWORD [fptmp], rdi");
+			cb.add("fld QWORD [fptmp]");
+			cb.add("mov QWORD [fptmp], rdx");
+			cb.add("fld QWORD [fptmp]");
+			cb.add("fcomip st1");
+			cb.add("fstp QWORD [fptmp]");
+			cb.add("mov rdi, QWORD [fptmp]");
+			cb.add("setb al");
+			cb.add("movzx rdi, al");
+			return ScopeType.BOOL;
+		}),
+		new OperatorInfo("<", ScopeType.DEC, ScopeType.DEC, cb -> {
+			cb.add("mov QWORD [fptmp], rdi");
+			cb.add("fld QWORD [fptmp]");
+			cb.add("mov QWORD [fptmp], rdx");
+			cb.add("fld QWORD [fptmp]");
+			cb.add("fcomip st1");
+			cb.add("fstp QWORD [fptmp]");
+			cb.add("mov rdi, QWORD [fptmp]");
+			cb.add("seta al");
 			cb.add("movzx rdi, al");
 			return ScopeType.BOOL;
 		})
@@ -164,5 +204,14 @@ public final class ExprEvaluator {
 			"No operator `" + opType + "` that has the arguments `" + left + "` and `" + right + "`.");
 		cb.errored = true;
 		return ScopeType.VOID;
+	}
+
+	private static void writeFloatingPoint(Codeblock cb, String inst) {
+		cb.add("mov QWORD [fptmp], rdi");
+		cb.add("fld QWORD [fptmp]");
+		cb.add("mov QWORD [fptmp], rdx");
+		cb.add(inst + " QWORD [fptmp]");
+		cb.add("fstp QWORD [fptmp]");
+		cb.add("mov rdi, QWORD [fptmp]");
 	}
 }

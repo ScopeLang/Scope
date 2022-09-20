@@ -32,13 +32,6 @@ outerStatement
 	: function
 	;
 
-typeName
-	: VoidType
-	| StringType
-	| IntType
-	| BoolType
-	;
-
 parameter
 	: typeName Identifier
 	;
@@ -97,10 +90,18 @@ atom
 	| Identifier
 	;
 literals
-	: IntLiteral
-	| DoubleLiteral
+	: IntegerLiteral
+	| DecimalLiteral
 	| StringLiteral
 	| BooleanLiteral
+	;
+
+typeName
+	: VoidType
+	| StrType
+	| IntType
+	| BoolType
+	| DecType
 	;
 
 // =============== //
@@ -139,15 +140,16 @@ ForKeyword: 'for';
 // Primitive types
 VoidType: 'void';
 IntType: 'int';
-StringType: 'str';
+StrType: 'str';
 BoolType: 'bool';
+DecType: 'dec';
 
 // Literals
-IntLiteral
-	: NumberFrag
+IntegerLiteral
+	: '-'? [0-9]+
 	;
-DoubleLiteral
-	: DecimalNumberFrag
+DecimalLiteral
+	: '-'? [0-9]* '.' [0-9]+
 	;
 StringLiteral
 	: '"' .*? '"'
@@ -155,14 +157,6 @@ StringLiteral
 BooleanLiteral
 	: 'true'
 	| 'false'
-	;
-
-// Literal fragments
-fragment NumberFrag
-	: [0-9]+
-	;
-fragment DecimalNumberFrag
-	: [0-9]* '.' [0-9]+
 	;
 
 // Important
