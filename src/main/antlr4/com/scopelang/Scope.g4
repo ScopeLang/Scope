@@ -139,7 +139,7 @@ ForKeyword: 'for';
 // Primitive types
 VoidType: 'void';
 IntType: 'int';
-StringType: 'string';
+StringType: 'str';
 BoolType: 'bool';
 
 // Literals

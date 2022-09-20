@@ -24,9 +24,9 @@ public final class ExprEvaluator {
 	}
 
 	public static final OperatorInfo[] operators = {
-		new OperatorInfo("+", ScopeType.STRING, ScopeType.STRING, cb -> {
+		new OperatorInfo("+", ScopeType.STR, ScopeType.STR, cb -> {
 			cb.add("call concat");
-			return ScopeType.STRING;
+			return ScopeType.STR;
 		}),
 		new OperatorInfo("+", ScopeType.INT, ScopeType.INT, cb -> {
 			cb.add("add rdi, rdx");
@@ -56,14 +56,14 @@ public final class ExprEvaluator {
 			cb.add("mov rdi, rdx");
 			return ScopeType.INT;
 		}),
-		new OperatorInfo("[]", ScopeType.STRING, ScopeType.INT, cb -> {
+		new OperatorInfo("[]", ScopeType.STR, ScopeType.INT, cb -> {
 			cb.add("add rdx, rdi");
 			cb.add("mov al, BYTE [rdx]");
 			cb.add("mov rdi, QWORD [curpkg]");
 			cb.add("mov BYTE [rdi], al");
 			cb.add("mov rsi, 1");
 			cb.add("add QWORD [curpkg], 1");
-			return ScopeType.STRING;
+			return ScopeType.STR;
 		}),
 		new OperatorInfo("==", ScopeType.INT, ScopeType.INT, cb -> {
 			cb.add("cmp rdi, rdx");

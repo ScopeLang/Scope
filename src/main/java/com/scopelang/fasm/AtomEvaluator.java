@@ -63,7 +63,7 @@ public final class AtomEvaluator {
 			if (str.equals("\"\"")) {
 				cb.add("mov rdi, 0");
 				cb.add("mov rsi, 0");
-				return ScopeType.STRING;
+				return ScopeType.STR;
 			}
 
 			int index = cb.generator.tokenProcessor.extactedStrings.get(str);
@@ -71,7 +71,7 @@ public final class AtomEvaluator {
 			String name = "s_" + cb.generator.md5 + "_" + index;
 			cb.add("lea rdi, [" + name + "]");
 			cb.add("mov rsi, " + name + ".size");
-			return ScopeType.STRING;
+			return ScopeType.STR;
 		} else if (ctx.IntLiteral() != null) {
 			String strValue = ctx.IntLiteral().getText();
 

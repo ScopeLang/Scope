@@ -4,7 +4,7 @@ import com.scopelang.ScopeParser.TypeNameContext;
 
 public class ScopeType {
 	public static final ScopeType VOID = new ScopeType("void");
-	public static final ScopeType STRING = new ScopeType("string");
+	public static final ScopeType STR = new ScopeType("str");
 	public static final ScopeType INT = new ScopeType("int");
 	public static final ScopeType BOOL = new ScopeType("bool");
 
@@ -35,14 +35,14 @@ public class ScopeType {
 
 	public static ScopeType fromTypeNameCtx(TypeNameContext ctx) {
 		if (ctx.StringType() != null) {
-			return new ScopeType("string");
+			return ScopeType.STR;
 		} else if (ctx.IntType() != null) {
-			return new ScopeType("int");
+			return ScopeType.INT;
 		} else if (ctx.BoolType() != null) {
-			return new ScopeType("bool");
+			return ScopeType.BOOL;
 		}
 
-		return new ScopeType("void");
+		return ScopeType.VOID;
 	}
 
 	public static ScopeType parseFromString(String str) {
