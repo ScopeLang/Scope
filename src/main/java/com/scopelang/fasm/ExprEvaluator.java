@@ -122,8 +122,7 @@ public final class ExprEvaluator {
 			cb.add("fld QWORD [fptmp]");
 			cb.add("mov QWORD [fptmp], rdx");
 			cb.add("fld QWORD [fptmp]");
-			cb.add("fcomip st1");
-			cb.add("fstp QWORD [fptmp]");
+			cb.add("fcomipp st1");
 			cb.add("mov rdi, QWORD [fptmp]");
 			cb.add("setb al");
 			cb.add("movzx rdi, al");
@@ -134,8 +133,7 @@ public final class ExprEvaluator {
 			cb.add("fld QWORD [fptmp]");
 			cb.add("mov QWORD [fptmp], rdx");
 			cb.add("fld QWORD [fptmp]");
-			cb.add("fcomip st1");
-			cb.add("fstp QWORD [fptmp]");
+			cb.add("fcomipp st1");
 			cb.add("mov rdi, QWORD [fptmp]");
 			cb.add("seta al");
 			cb.add("movzx rdi, al");
