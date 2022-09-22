@@ -104,6 +104,8 @@ public final class Scope {
 					}
 					return;
 				}
+			} else if (projXml.mode.equals("library")) {
+				cacheDir = workingDir;
 			}
 
 			// Solve libs
@@ -123,11 +125,28 @@ public final class Scope {
 				case "run":
 					if (!projXml.mode.equals("project")) {
 						Utils.error("You can only use the `run` option on projects!",
-							"Try using `build` instead.");
+							"Try using `build` or `test` instead.");
 						return;
 					}
 
 					build(projXml.mainFile, true);
+					break;
+				case "test":
+					if (!projXml.mode.equals("library")) {
+						Utils.error("You can only use the `test` option on libraries!",
+							"Try using `build` or `run` instead.");
+						return;
+					}
+
+					// Run then delete
+					var exe = build(projXml.testFile, true);
+					exe.delete();
+
+					// Delete scopeasm
+					String baseName = FilenameUtils.getBaseName(projXml.testFile.getPath());
+					File asm = new File(cacheDir, baseName + ".scopeasm");
+					asm.delete();
+
 					break;
 				case "clean":
 					if (projXml.mode.equals("library")) {
@@ -163,6 +182,7 @@ public final class Scope {
 		System.out.println("\nmodes:");
 		System.out.println(" build   Builds the project.");
 		System.out.println(" run     Builds then runs the project.");
+		System.out.println(" test    Runs the test file for a library.");
 		System.out.println(" clean   Deletes all cache files.");
 	}
 
@@ -215,7 +235,7 @@ public final class Scope {
 		Utils.log("Generated and cached `" + Utils.pathRelativeToWorkingDir(outputFile.toPath()).toString() + "`.");
 	}
 
-	private static void build(File mainFile, boolean run) {
+	private static File build(File mainFile, boolean run) {
 		// Generate ASM
 		String baseName = FilenameUtils.getBaseName(mainFile.getPath());
 		File asm = new File(cacheDir, baseName + ".scopeasm");
@@ -235,7 +255,7 @@ public final class Scope {
 		if (!exe.exists()) {
 			Utils.error("FASM could not compile the assembly output!",
 				"Use the `-f` option for details.");
-			return;
+			return exe;
 		}
 
 		// Run (if asked)
@@ -247,11 +267,18 @@ public final class Scope {
 				Utils.log("Compiled program exited with non-zero exit code: " + exitCode);
 			}
 		}
+
+		return exe;
 	}
 
 	private static void buildLibrary(String name) {
 		// Compile all files
 		for (File f : workingDir.listFiles()) {
+			// Skip test file
+			if (f.equals(projXml.testFile)) {
+				continue;
+			}
+
 			if (f.getName().endsWith(".scope")) {
 				String baseName = FilenameUtils.getBaseName(f.getPath());
 				genAsm(f, new File(workingDir, baseName + ".scopelib"), true);
@@ -268,9 +295,26 @@ public final class Scope {
 			var files = Files.find(Paths.get(workingDir.toURI()), Integer.MAX_VALUE,
 				(path, fileAttr) -> {
 					var n = path.getFileName().toString();
-					boolean a = n.endsWith(".scope") || n.endsWith(".scopelib") || n.equals("scope.xml")
-						|| n.equalsIgnoreCase("LICENSE");
-					return a && fileAttr.isRegularFile();
+
+					// Skip non-files
+					if (!fileAttr.isRegularFile()) {
+						return false;
+					}
+
+					// Skip test file
+					if (path.toAbsolutePath().toString().equals(projXml.testFile.getAbsolutePath())) {
+						return false;
+					}
+
+					if (n.endsWith(".scope") || n.endsWith(".scopelib")) {
+						return true;
+					}
+
+					if (n.equals("scope.xml") || n.equalsIgnoreCase("LICENSE")) {
+						return true;
+					}
+
+					return false;
 				}).map(i -> i.toFile());
 
 			// Zip it up

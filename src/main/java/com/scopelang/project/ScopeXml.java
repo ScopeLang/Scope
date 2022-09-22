@@ -33,6 +33,7 @@ public class ScopeXml {
 	public String mode = null;
 	public File mainFile = null;
 	public String name = null;
+	public File testFile = null;
 	public ArrayList<LibraryInfo> libraries = new ArrayList<>();
 
 	public ScopeXml(File file) {
@@ -107,8 +108,20 @@ public class ScopeXml {
 						"<name>mylib</name>");
 					throw new Exception();
 				}
-
 				name = nameNode.item(0).getTextContent();
+
+				// <test>
+				NodeList testNode = document.getElementsByTagName("test");
+				if (testNode.getLength() >= 1) {
+					testFile = new File(Scope.workingDir, testNode.item(0).getTextContent());
+
+					if (!testFile.exists()) {
+						Utils.error("File referenced in `test` doesn't exist.",
+							"Try making a file named `" + testFile.getName() + "`.");
+						throw new Exception();
+					}
+				}
+
 				break;
 		}
 

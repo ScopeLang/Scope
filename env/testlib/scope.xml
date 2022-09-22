@@ -1,4 +1,5 @@
 <scope>
 	<mode>library</mode>
 	<name>testlib</name>
+	<test>Test.scope</test>
 </scope>
