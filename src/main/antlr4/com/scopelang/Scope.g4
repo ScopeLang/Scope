@@ -87,6 +87,7 @@ function
 expr
 	: expr '[' expr ']'
 	| '-' expr
+	| expr '->' typeName
 	| expr '^' expr
 	| expr ('*' | '/' | '%') expr
 	| expr ('+' | '-') expr
@@ -142,6 +143,7 @@ Equals: '==';
 NotEquals: '!=';
 GreaterThan: '>';
 LessThan: '<';
+Cast: '->';
 
 // Keywords
 FuncKeyword: 'func';

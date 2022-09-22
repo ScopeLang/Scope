@@ -138,6 +138,20 @@ public final class ExprEvaluator {
 			cb.add("seta al");
 			cb.add("movzx rdi, al");
 			return ScopeType.BOOL;
+		}),
+		new OperatorInfo("->", ScopeType.INT, ScopeType.DEC, cb -> {
+			cb.add("mov QWORD [fptmp], rdi");
+			cb.add("fild QWORD [fptmp]");
+			cb.add("fstp QWORD [fptmp]");
+			cb.add("mov rdi, QWORD [fptmp]");
+			return ScopeType.DEC;
+		}),
+		new OperatorInfo("->", ScopeType.DEC, ScopeType.INT, cb -> {
+			cb.add("mov QWORD [fptmp], rdi");
+			cb.add("fld QWORD [fptmp]");
+			cb.add("fistp QWORD [fptmp]");
+			cb.add("mov rdi, QWORD [fptmp]");
+			return ScopeType.INT;
 		})
 	};
 
@@ -195,20 +209,27 @@ public final class ExprEvaluator {
 			opType = ">";
 		} else if (ctx.LessThan() != null) {
 			opType = "<";
+		} else if (ctx.Cast() != null) {
+			opType = "->";
 		}
 
 		// Get right (if not unary)
 		var right = ScopeType.VOID;
-		if (!opType.equals("-n")) {
+		if (!opType.equals("-n") && !opType.equals("->")) {
 			right = eval(cb, ctx.expr(1));
 			cb.add("push rdi, rsi");
+		}
+
+		// If cast, get the right type
+		if (opType.equals("->")) {
+			right = ScopeType.fromTypeNameCtx(ctx.typeName());
 		}
 
 		// Get left (only if unary)
 		var left = eval(cb, ctx.expr(0));
 
 		// Pop if not unary
-		if (!opType.equals("-n")) {
+		if (!opType.equals("-n") && !opType.equals("->")) {
 			cb.add("pop rcx, rdx");
 		}
 
