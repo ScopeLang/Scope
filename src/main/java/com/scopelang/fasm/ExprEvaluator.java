@@ -5,11 +5,11 @@ import com.scopelang.ScopeType;
 import com.scopelang.Utils;
 
 public final class ExprEvaluator {
-	private abstract interface IOperatorAction {
+	public abstract interface IOperatorAction {
 		public abstract ScopeType action(Codeblock cb);
 	}
 
-	private static class OperatorInfo {
+	public static class OperatorInfo {
 		public String operator;
 		public ScopeType left;
 		public ScopeType right;

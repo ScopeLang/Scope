@@ -23,6 +23,7 @@ innerStatement
 	: invoke
 	| declare
 	| assign
+	| opAssign
 	| return
 	| breakpoint
 	| if
@@ -52,6 +53,14 @@ declare
 	;
 assign
 	: Identifier '=' expr EndLine
+	;
+opAssign
+	: Identifier '^=' expr EndLine
+	| Identifier '*=' expr EndLine
+	| Identifier '/=' expr EndLine
+	| Identifier '+=' expr EndLine
+	| Identifier '-=' expr EndLine
+	| Identifier '%=' expr EndLine
 	;
 return
 	: ReturnKeyword expr EndLine
@@ -123,6 +132,12 @@ Div: '/';
 Add: '+';
 Sub: '-';
 Mod: '%';
+PowAssign: '^=';
+MulAssign: '*=';
+DivAssign: '/=';
+AddAssign: '+=';
+SubAssign: '-=';
+ModAssign: '%=';
 Equals: '==';
 NotEquals: '!=';
 GreaterThan: '>';

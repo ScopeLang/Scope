@@ -410,4 +410,79 @@ public class FasmGenerator extends ScopeBaseListener {
 		codeblock.add("je ." + codeLabel);
 		codeblock.indent--;
 	}
+
+	@Override
+	public void exitOpAssign(OpAssignContext ctx) {
+		String ident = ctx.Identifier().getText();
+
+		// Error if the local variable doesn't exist
+		if (!codeblock.varExists(ident)) {
+			Utils.error(locationOf(ctx.start),
+				"Variable `" + ident + "` was not defined yet in this scope.",
+				"Change this statement to a declaration to fix this.");
+			errored = true;
+			return;
+		}
+
+		// Get operator
+		String operator = "";
+		if (ctx.AddAssign() != null) {
+			operator = "+";
+		} else if (ctx.SubAssign() != null) {
+			operator = "-";
+		} else if (ctx.MulAssign() != null) {
+			operator = "*";
+		} else if (ctx.DivAssign() != null) {
+			operator = "/";
+		} else if (ctx.ModAssign() != null) {
+			operator = "%";
+		} else if (ctx.PowAssign() != null) {
+			operator = "^";
+		}
+
+		// Expr
+		var left = ExprEvaluator.eval(codeblock, ctx.expr());
+		codeblock.add("push rdi, rsi");
+
+		// Variable
+		codeblock.varGet(ident);
+		var right = codeblock.varType(ident);
+		codeblock.add("pop rcx, rdx");
+
+		// Look for the operator
+		ScopeType result = null;
+		for (var op : ExprEvaluator.operators) {
+			if (!op.operator.equals(operator)) {
+				continue;
+			}
+
+			if (!left.equals(op.left) || !right.equals(op.right)) {
+				continue;
+			}
+
+			result = op.action.action(codeblock);
+			break;
+		}
+
+		// Error
+		if (result == null) {
+			Utils.error(locationOf(ctx.start),
+				"No operator `" + operator + "` that has the arguments `" + left + "` and `" + right + "`.");
+			errored = true;
+			return;
+		}
+
+		// Check type
+		var varType = codeblock.varType(ident);
+		if (!result.equals(varType)) {
+			Utils.error(locationOf(ctx.start),
+				"The variable type (`" + varType + "`) and expression (`" + varType + "`) don't match.",
+				"Are you op-assigning to the wrong variable?");
+			errored = true;
+			return;
+		}
+
+		// Assign!
+		codeblock.varAssign(ident);
+	}
 }
