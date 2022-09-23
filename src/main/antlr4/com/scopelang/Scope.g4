@@ -31,7 +31,8 @@ innerStatement
 	| assembly
 	;
 outerStatement
-	: function
+	: ImportKeyword StringLiteral EndLine
+	| function
 	;
 
 parameter
