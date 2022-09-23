@@ -3,7 +3,6 @@ package com.scopelang;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.*;
-import java.util.stream.Collectors;
 
 import org.antlr.v4.runtime.*;
 import org.antlr.v4.runtime.tree.ParseTree;
@@ -27,6 +26,8 @@ public final class Scope {
 	public static File cacheDir = null;
 	public static File libDir = null;
 	public static ScopeXml projXml = null;
+
+	private static int noGenCounter = -1;
 
 	private Scope() {
 	}
@@ -133,6 +134,9 @@ public final class Scope {
 					build(projXml.mainFile, true);
 					break;
 				case "test":
+					System.out.println("WARNING: Due to me being lazy, you must first " +
+						"run `scope build` to see changes. Will be fixed.\n");
+
 					if (!projXml.mode.equals("library")) {
 						Utils.error("You can only use the `test` option on libraries!",
 							"Try using `build` or `run` instead.");
@@ -140,13 +144,9 @@ public final class Scope {
 					}
 
 					// Run then delete
+					noGenCounter = 1;
 					var exe = build(projXml.testFile, true);
 					exe.delete();
-
-					// Delete scopeasm
-					String baseName = FilenameUtils.getBaseName(projXml.testFile.getPath());
-					File asm = new File(cacheDir, baseName + ".scopeasm");
-					asm.delete();
 
 					break;
 				case "clean":
@@ -188,6 +188,14 @@ public final class Scope {
 	}
 
 	public static void genAsm(File sourceFile, File outputFile, boolean libraryMode) {
+		// Quick hack to prevent librar comp issue
+		// Will be removed eventually
+		if (noGenCounter == 0) {
+			return;
+		} else if (noGenCounter != -1) {
+			noGenCounter--;
+		}
+
 		var errorHandler = new ErrorHandler(sourceFile);
 
 		// Preprocess
@@ -282,7 +290,7 @@ public final class Scope {
 				if (f.equals(projXml.testFile)) {
 					continue;
 				}
-				
+
 				if (f.getName().endsWith(".scope")) {
 					genAsm(f, new File(f.getPath() + "lib"), true);
 				}
