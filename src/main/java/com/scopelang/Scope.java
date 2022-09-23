@@ -20,6 +20,7 @@ import com.scopelang.preprocess.TokenProcessor;
 import com.scopelang.project.ScopeXml;
 
 import net.lingala.zip4j.ZipFile;
+import net.lingala.zip4j.model.ZipParameters;
 
 public final class Scope {
 	public static File workingDir = null;
@@ -273,15 +274,24 @@ public final class Scope {
 
 	private static void buildLibrary(String name) {
 		// Compile all files
-		for (File f : workingDir.listFiles()) {
-			// Skip test file
-			if (f.equals(projXml.testFile)) {
-				continue;
+		try {
+			var sourceFiles = Files.walk(workingDir.toPath())
+				.filter(Files::isRegularFile).map(i -> i.toFile());
+			for (File f : sourceFiles.toArray(File[]::new)) {
+				// Skip test file
+				if (f.equals(projXml.testFile)) {
+					continue;
+				}
+				
+				if (f.getName().endsWith(".scope")) {
+					genAsm(f, new File(f.getPath() + "lib"), true);
+				}
 			}
-
-			if (f.getName().endsWith(".scope")) {
-				String baseName = FilenameUtils.getBaseName(f.getPath());
-				genAsm(f, new File(workingDir, baseName + ".scopelib"), true);
+		} catch (Exception e) {
+			Utils.error("Could not locate source files.",
+				"Use `-f` for more info.");
+			if (!Utils.disableLog) {
+				e.printStackTrace();
 			}
 		}
 
@@ -319,10 +329,19 @@ public final class Scope {
 
 			// Zip it up
 			try (var z = new ZipFile(zipFile)) {
-				z.addFiles(files.collect(Collectors.toList()));
+				// Add each file relative to workspace
+				for (var file : files.toArray(File[]::new)) {
+					Path path = Utils.pathRelativeToWorkingDir(file.toPath());
+
+					ZipParameters zipParameters = new ZipParameters();
+					zipParameters.setFileNameInZip(path.toString());
+
+					z.addFile(file, zipParameters);
+				}
 			}
 		} catch (Exception e) {
-			Utils.error("Could not package library into a zip.");
+			Utils.error("Could not package library into a zip.",
+				"Use `-f` for more info.");
 			if (!Utils.disableLog) {
 				e.printStackTrace();
 			}

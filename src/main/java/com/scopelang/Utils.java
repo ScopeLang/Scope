@@ -63,6 +63,12 @@ public final class Utils {
 
 	public static Path pathRelativeToWorkingDir(Path path) {
 		Path base = Scope.workingDir.toPath();
+
+		// Make both paths the same type
+		if (path.isAbsolute()) {
+			base = base.toAbsolutePath();
+		}
+
 		return base.relativize(path);
 	}
 
