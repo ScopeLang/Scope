@@ -136,6 +136,10 @@ public class Codeblock {
 		add("vlist_set " + id);
 	}
 
+	public int varId(String name) {
+		return localVariables.get(name).id;
+	}
+
 	public ScopeType varType(String name) {
 		return localVariables.get(name).type;
 	}

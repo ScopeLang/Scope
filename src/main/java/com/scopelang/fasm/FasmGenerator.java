@@ -485,4 +485,29 @@ public class FasmGenerator extends ScopeBaseListener {
 		// Assign!
 		codeblock.varAssign(ident);
 	}
+
+	@Override
+	public void enterAssembly(AssemblyContext ctx) {
+		codeblock.add(";@ASM_START");
+	}
+
+	@Override
+	public void exitAssembly(AssemblyContext ctx) {
+		// Get the asm and remove the start
+		String asm = ctx.AssemblyBlock().getText();
+		int firstBracket = asm.indexOf("{");
+		asm = asm.substring(firstBracket + 1, asm.length() - 1);
+
+		// Clean up asm
+		asm = asm.trim().replace("\t", "").replace("\n", "\n\t");
+
+		// Punch in local variable IDs
+		for (var localVar : codeblock.allVarNames()) {
+			asm = asm.replace("$" + localVar + "$", Integer.toString(codeblock.varId(localVar)));
+		}
+
+		// Add it all
+		codeblock.add(asm);
+		codeblock.add(";@ASM_END");
+	}
 }

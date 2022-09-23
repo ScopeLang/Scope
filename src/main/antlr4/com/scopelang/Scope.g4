@@ -28,6 +28,7 @@ innerStatement
 	| breakpoint
 	| if
 	| while
+	| assembly
 	;
 outerStatement
 	: function
@@ -77,6 +78,9 @@ else
 while
 	: WhileKeyword '(' expr ')' codeblock
 	;
+assembly
+	: AssemblyBlock
+	;
 
 // Outer statements
 function
@@ -118,6 +122,9 @@ typeName
 // =============== //
 // ==== Lexer ==== //
 // =============== //
+
+// Assembly block
+AssemblyBlock: 'assembly' [ \t\r\n]* '{' .*? '}';
 
 // Symbols
 LeftParen: '(';
