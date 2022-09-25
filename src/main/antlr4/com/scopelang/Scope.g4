@@ -20,12 +20,12 @@ outerStatments
 	;
 
 innerStatement
-	: invoke
-	| declare
-	| assign
-	| opAssign
-	| return
-	| breakpoint
+	: invoke EndLine
+	| declare EndLine
+	| assign EndLine
+	| opAssign EndLine
+	| return EndLine
+	| breakpoint EndLine
 	| if
 	| while
 	| assembly
@@ -48,33 +48,33 @@ arguments
 
 // Inner statements
 invoke
-	: Identifier '(' arguments ')' EndLine
+	: Identifier '(' arguments ')'
 	;
 declare
-	: typeName Identifier '=' expr EndLine
+	: typeName Identifier '=' expr
 	;
 assign
-	: Identifier '=' expr EndLine
+	: Identifier '=' expr
 	;
 opAssign
-	: Identifier '^=' expr EndLine
-	| Identifier '*=' expr EndLine
-	| Identifier '/=' expr EndLine
-	| Identifier '+=' expr EndLine
-	| Identifier '-=' expr EndLine
-	| Identifier '%=' expr EndLine
+	: Identifier '^=' expr
+	| Identifier '*=' expr
+	| Identifier '/=' expr
+	| Identifier '+=' expr
+	| Identifier '-=' expr
+	| Identifier '%=' expr
 	;
 return
-	: ReturnKeyword expr EndLine
+	: ReturnKeyword expr
 	;
 breakpoint
-	: BreakpointKeyword EndLine
+	: BreakpointKeyword
 	;
 if
 	: IfKeyword '(' expr ')' codeblock else?
 	;
 else
-	: ElseKeyword codeblock
+	: ElseKeyword (if | codeblock)
 	;
 while
 	: WhileKeyword '(' expr ')' codeblock
