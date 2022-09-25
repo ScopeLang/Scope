@@ -28,6 +28,7 @@ innerStatement
 	| breakpoint EndLine
 	| if
 	| while
+	| for
 	| assembly
 	;
 outerStatement
@@ -80,7 +81,7 @@ while
 	: WhileKeyword '(' expr ')' codeblock
 	;
 for
-	: ForKeyword '(' declare ',' expr ',' (assign | opAssign) ')' codeblock
+	: ForKeyword '(' typeName Identifier ':' expr '..' expr (StepKeyword expr)? ')' codeblock
 	;
 assembly
 	: AssemblyBlock
@@ -155,6 +156,8 @@ NotEquals: '!=';
 GreaterThan: '>';
 LessThan: '<';
 Cast: '->';
+Where: ':';
+Range: '..';
 
 // Keywords
 FuncKeyword: 'func';
@@ -165,6 +168,7 @@ IfKeyword: 'if';
 ElseKeyword: 'else';
 WhileKeyword: 'while';
 ForKeyword: 'for';
+StepKeyword: 'step';
 
 // Primitive types
 VoidType: 'void';

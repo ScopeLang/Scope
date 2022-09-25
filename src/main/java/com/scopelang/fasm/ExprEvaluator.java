@@ -235,16 +235,10 @@ public final class ExprEvaluator {
 			cb.add("pop rcx, rdx");
 		}
 
-		for (var op : operators) {
-			if (!op.operator.equals(opType)) {
-				continue;
-			}
-
-			if (!left.equals(op.left) || !right.equals(op.right)) {
-				continue;
-			}
-
-			return op.action.action(cb);
+		// Use the operator
+		var type = useOperator(opType, left, right, cb);
+		if (type != null) {
+			return type;
 		}
 
 		Utils.error(cb.generator.locationOf(ctx.start),
@@ -260,5 +254,21 @@ public final class ExprEvaluator {
 		cb.add(inst + " QWORD [fptmp]");
 		cb.add("fstp QWORD [fptmp]");
 		cb.add("mov rdi, QWORD [fptmp]");
+	}
+
+	public static ScopeType useOperator(String name, ScopeType left, ScopeType right, Codeblock cb) {
+		for (var op : operators) {
+			if (!op.operator.equals(name)) {
+				continue;
+			}
+
+			if (!left.equals(op.left) || !right.equals(op.right)) {
+				continue;
+			}
+
+			return op.action.action(cb);
+		}
+
+		return null;
 	}
 }

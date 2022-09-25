@@ -6,6 +6,8 @@ import java.util.List;
 import java.util.Set;
 import java.util.Stack;
 
+import org.antlr.v4.runtime.ParserRuleContext;
+
 import com.scopelang.*;
 import com.scopelang.ScopeParser.ExprContext;
 import com.scopelang.error.ErrorLoc;
@@ -128,6 +130,29 @@ public class Codeblock {
 		return localVariables.containsKey(name);
 	}
 
+	public boolean varExistsOrError(String name, ParserRuleContext ctx) {
+		if (!varExists(name)) {
+			Utils.error(generator.locationOf(ctx.start),
+				"Variable `" + name + "` was not defined yet in this scope.");
+			generator.errored = true;
+			return false;
+		}
+
+		return true;
+	}
+
+	public boolean varNotExistsOrError(String name, ParserRuleContext ctx) {
+		if (varExists(name)) {
+			Utils.error(generator.locationOf(ctx.start),
+				"Variable `" + name + "` was already defined in this scope.",
+				"Try to keep variable names concise and readable.");
+			generator.errored = true;
+			return false;
+		}
+
+		return true;
+	}
+
 	public void varCreate(String name, ScopeType type) {
 		int id = localVariableNext++;
 		localVariables.put(name, new VariableInfo(id, currentScope, type));
@@ -169,6 +194,13 @@ public class Codeblock {
 	}
 
 	public String popLabelName() {
+		if (labelStack.empty()) {
+			Utils.error("Unrecoverable label stack error.",
+				"This should go away once above errors are fixed.");
+			Utils.forceExit();
+			return null;
+		}
+
 		return labelStack.pop();
 	}
 

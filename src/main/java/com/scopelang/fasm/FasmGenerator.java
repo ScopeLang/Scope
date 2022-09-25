@@ -291,11 +291,7 @@ public class FasmGenerator extends ScopeBaseListener {
 		String ident = ctx.Identifier().getText();
 
 		// Error if the local variable already exists
-		if (codeblock.varExists(ident)) {
-			Utils.error(locationOf(ctx.start),
-				"Variable `" + ident + "` was already defined in this scope.",
-				"Try to keep variable names concise and readable.");
-			errored = true;
+		if (!codeblock.varNotExistsOrError(ident, ctx)) {
 			return;
 		}
 
@@ -324,12 +320,7 @@ public class FasmGenerator extends ScopeBaseListener {
 		var exprType = ExprEvaluator.eval(codeblock, ctx.expr());
 
 		// Error if the local variable doesn't exist
-		if (!codeblock.varExists(ident)) {
-			Utils.error(locationOf(ctx.start),
-				"Variable `" + ident + "` was not defined yet in this scope.",
-				"Change this statement to a declaration to fix this:",
-				exprType.toString() + " " + ident + " = " + ctx.expr().getText() + ";");
-			errored = true;
+		if (!codeblock.varExistsOrError(ident, ctx)) {
 			return;
 		}
 
@@ -427,7 +418,121 @@ public class FasmGenerator extends ScopeBaseListener {
 
 	@Override
 	public void enterFor(ForContext ctx) {
+		String ident = ctx.Identifier().getText();
+		var type = ScopeType.fromTypeNameCtx(ctx.typeName());
 
+		// Error if the local variable already exists
+		if (!codeblock.varNotExistsOrError(ident, ctx)) {
+			return;
+		}
+
+		// Get the start
+		codeblock.increaseScope();
+		codeblock.indent++;
+		var startType = ExprEvaluator.eval(codeblock, ctx.expr(0));
+
+		// Check type
+		if (!startType.equals(type)) {
+			Utils.error(locationOf(ctx.start),
+				"The variable type (`" + type + "`) and the range type (`" + startType + "`) don't match.");
+			errored = true;
+			return;
+		}
+
+		// Add ASM
+		codeblock.varCreate(ident, type);
+		codeblock.add("jmp ." + codeblock.pushLabelName());
+		codeblock.add("." + codeblock.pushLabelName() + ":");
+		codeblock.indent++;
+	}
+
+	@Override
+	public void exitFor(ForContext ctx) {
+		String ident = ctx.Identifier().getText();
+		var type = ScopeType.fromTypeNameCtx(ctx.typeName());
+		String codeLabel = codeblock.popLabelName();
+
+		// Set up the plus
+		codeblock.varGet(ident);
+		codeblock.add("push rdi, rsi");
+		if (ctx.expr().size() >= 3) {
+			var stepType = ExprEvaluator.eval(codeblock, ctx.expr(2));
+			codeblock.add("pop rcx, rdx");
+
+			if (!stepType.equals(type)) {
+				Utils.error(locationOf(ctx.start),
+					"The variable type (`" + type + "`) and the step type (`" + stepType + "`) don't match.");
+				errored = true;
+				return;
+			}
+		} else {
+			if (type.equals(ScopeType.INT)) {
+				codeblock.add("mov rdi, QWORD 1");
+				codeblock.add("mov rsi, 0");
+				codeblock.add("pop rcx, rdx");
+			} else {
+				Utils.error(locationOf(ctx.start),
+					"For loops where the type is not an `int` must have a step argument.",
+					"A step argument looks like this:",
+					"for (int i : 0..10 step 5) {",
+					"\t...",
+					"}");
+				errored = true;
+				return;
+			}
+		}
+
+		// Look for the plus operator
+		ScopeType result = ExprEvaluator.useOperator("+", type, type, codeblock);
+
+		// Error
+		if (result == null) {
+			Utils.error(locationOf(ctx.start),
+				"No operator `+` that can be used for a for loop that has arguments `" + type + "` and `" + type
+					+ "`.");
+			errored = true;
+			return;
+		}
+
+		codeblock.varAssign(ident);
+		codeblock.indent--;
+		codeblock.add("." + codeblock.popLabelName() + ":");
+		codeblock.indent++;
+
+		// Variable
+		var endType = ExprEvaluator.eval(codeblock, ctx.expr(1));
+		codeblock.add("push rdi, rsi");
+
+		// Expr
+		codeblock.varGet(ident);
+		codeblock.add("pop rcx, rdx");
+
+		// Check end type
+		if (!endType.equals(type)) {
+			Utils.error(locationOf(ctx.start),
+				"The variable type (`" + type + "`) and the range type (`" + endType + "`) don't match.");
+			errored = true;
+			return;
+		}
+
+		// Look for the less than operator
+		result = ExprEvaluator.useOperator("<", type, type, codeblock);
+
+		// Error
+		if (result == null) {
+			Utils.error(locationOf(ctx.start),
+				"No operator `<` that can be used for a for loop that has arguments `" + type + "` and `" + type
+					+ "`.");
+			errored = true;
+			return;
+		}
+
+		codeblock.add("cmp rdi, 1");
+		codeblock.add("je ." + codeLabel);
+		codeblock.indent--;
+
+		codeblock.decreaseScope();
+		codeblock.indent--;
 	}
 
 	@Override
@@ -435,11 +540,7 @@ public class FasmGenerator extends ScopeBaseListener {
 		String ident = ctx.Identifier().getText();
 
 		// Error if the local variable doesn't exist
-		if (!codeblock.varExists(ident)) {
-			Utils.error(locationOf(ctx.start),
-				"Variable `" + ident + "` was not defined yet in this scope.",
-				"Change this statement to a declaration to fix this.");
-			errored = true;
+		if (!codeblock.varExistsOrError(ident, ctx)) {
 			return;
 		}
 
@@ -469,19 +570,7 @@ public class FasmGenerator extends ScopeBaseListener {
 		codeblock.add("pop rcx, rdx");
 
 		// Look for the operator
-		ScopeType result = null;
-		for (var op : ExprEvaluator.operators) {
-			if (!op.operator.equals(operator)) {
-				continue;
-			}
-
-			if (!left.equals(op.left) || !right.equals(op.right)) {
-				continue;
-			}
-
-			result = op.action.action(codeblock);
-			break;
-		}
+		ScopeType result = ExprEvaluator.useOperator(operator, left, right, codeblock);
 
 		// Error
 		if (result == null) {
