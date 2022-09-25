@@ -189,6 +189,20 @@ public class FasmGenerator extends ScopeBaseListener {
 	}
 
 	@Override
+	public void enterCodeblock(CodeblockContext ctx) {
+		if (codeblock != null) {
+			codeblock.increaseScope();
+		}
+	}
+
+	@Override
+	public void exitCodeblock(CodeblockContext ctx) {
+		if (codeblock != null) {
+			codeblock.decreaseScope();
+		}
+	}
+
+	@Override
 	public void enterFunction(FunctionContext ctx) {
 		String ident = ctx.Identifier().getText();
 		var returnType = ScopeType.fromTypeNameCtx(ctx.typeName());
@@ -409,6 +423,11 @@ public class FasmGenerator extends ScopeBaseListener {
 		codeblock.add("cmp rdi, 1");
 		codeblock.add("je ." + codeLabel);
 		codeblock.indent--;
+	}
+
+	@Override
+	public void enterFor(ForContext ctx) {
+
 	}
 
 	@Override

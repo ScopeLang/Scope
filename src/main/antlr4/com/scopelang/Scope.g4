@@ -79,6 +79,9 @@ else
 while
 	: WhileKeyword '(' expr ')' codeblock
 	;
+for
+	: ForKeyword '(' declare ',' expr ',' (assign | opAssign) ')' codeblock
+	;
 assembly
 	: AssemblyBlock
 	;

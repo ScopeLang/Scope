@@ -14,10 +14,12 @@ import com.scopelang.preprocess.FuncGatherer;
 public class Codeblock {
 	public static class VariableInfo {
 		public int id;
+		public int scope;
 		public ScopeType type;
 
-		public VariableInfo(int id, ScopeType type) {
+		public VariableInfo(int id, int scope, ScopeType type) {
 			this.id = id;
+			this.scope = scope;
 			this.type = type;
 		}
 	}
@@ -26,6 +28,7 @@ public class Codeblock {
 
 	public FasmGenerator generator;
 
+	private int currentScope = 0;
 	private int localVariableNext = 0;
 	private HashMap<String, VariableInfo> localVariables = new HashMap<>();
 
@@ -127,7 +130,7 @@ public class Codeblock {
 
 	public void varCreate(String name, ScopeType type) {
 		int id = localVariableNext++;
-		localVariables.put(name, new VariableInfo(id, type));
+		localVariables.put(name, new VariableInfo(id, currentScope, type));
 		add("vlist_set " + id);
 	}
 
@@ -167,6 +170,15 @@ public class Codeblock {
 
 	public String popLabelName() {
 		return labelStack.pop();
+	}
+
+	public void increaseScope() {
+		currentScope++;
+	}
+
+	public void decreaseScope() {
+		currentScope--;
+		localVariables.entrySet().removeIf(kv -> kv.getValue().scope > currentScope);
 	}
 
 	@Override
