@@ -37,17 +37,12 @@ macro movqd a, b {
 }
 
 macro vlist_getptr o, index {
-	mov o, index
-	imul o, 16
-	add o, 8
-	add o, QWORD [vlist]
-	mov o, QWORD [o]
+	mov o, QWORD [vlist]
+	mov o, QWORD [o + index * 16 + 8]
 }
 macro vlist_getsize o, index { 
-	mov o, index
-	imul o, 16
-	add o, QWORD [vlist]
-	movqd o, DWORD [o]
+	mov o, QWORD [vlist]
+	movqd o, DWORD [o + index * 16]
 }
 
 ; args: rdi ptr, rsi size

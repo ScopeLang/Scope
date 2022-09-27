@@ -455,23 +455,24 @@ public class FasmGenerator extends ScopeBaseListener {
 		String codeLabel = codeblock.popLabelName();
 
 		// Set up the plus
-		codeblock.varGet(ident);
-		codeblock.add("push rdi, rsi");
-		if (ctx.expr().size() >= 3) {
-			var stepType = ExprEvaluator.eval(codeblock, ctx.expr(2));
-			codeblock.add("pop rcx, rdx");
-
-			if (!stepType.equals(type)) {
-				Utils.error(locationOf(ctx.start),
-					"The variable type (`" + type + "`) and the step type (`" + stepType + "`) don't match.");
-				errored = true;
-				return;
-			}
+		if (type.equals(ScopeType.INT) && ctx.expr().size() <= 2) {
+			// Optimized increment for integers
+			codeblock.add("vlist_getptr rdi, " + codeblock.varId(ident));
+			codeblock.add("xor rsi, rsi");
+			codeblock.add("inc rdi");
 		} else {
-			if (type.equals(ScopeType.INT)) {
-				codeblock.add("mov rdi, QWORD 1");
-				codeblock.add("mov rsi, 0");
+			codeblock.varGet(ident);
+			codeblock.add("push rdi, rsi");
+			if (ctx.expr().size() >= 3) {
+				var stepType = ExprEvaluator.eval(codeblock, ctx.expr(2));
 				codeblock.add("pop rcx, rdx");
+
+				if (!stepType.equals(type)) {
+					Utils.error(locationOf(ctx.start),
+						"The variable type (`" + type + "`) and the step type (`" + stepType + "`) don't match.");
+					errored = true;
+					return;
+				}
 			} else {
 				Utils.error(locationOf(ctx.start),
 					"For loops where the type is not an `int` must have a step argument.",
@@ -482,18 +483,18 @@ public class FasmGenerator extends ScopeBaseListener {
 				errored = true;
 				return;
 			}
-		}
 
-		// Look for the plus operator
-		ScopeType result = ExprEvaluator.useOperator("+", type, type, codeblock);
+			// Look for the plus operator
+			ScopeType result = ExprEvaluator.useOperator("+", type, type, codeblock);
 
-		// Error
-		if (result == null) {
-			Utils.error(locationOf(ctx.start),
-				"No operator `+` that can be used for a for loop that has arguments `" + type + "` and `" + type
-					+ "`.");
-			errored = true;
-			return;
+			// Error
+			if (result == null) {
+				Utils.error(locationOf(ctx.start),
+					"No operator `+` that can be used for a for loop that has arguments `" + type + "` and `" + type
+						+ "`.");
+				errored = true;
+				return;
+			}
 		}
 
 		codeblock.varAssign(ident);
@@ -518,7 +519,7 @@ public class FasmGenerator extends ScopeBaseListener {
 		}
 
 		// Look for the less than operator
-		result = ExprEvaluator.useOperator("<", type, type, codeblock);
+		ScopeType result = ExprEvaluator.useOperator("<", type, type, codeblock);
 
 		// Error
 		if (result == null) {
