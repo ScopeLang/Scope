@@ -9,17 +9,18 @@ import com.scopelang.Scope;
 import com.scopelang.Utils;
 import com.scopelang.preprocess.FuncGatherer;
 
-public final class ImportManager {
-	private static ArrayList<File> importedFiles = new ArrayList<>();
+public class ImportManager {
+	private ArrayList<File> importedFiles = new ArrayList<>();
 
-	private ImportManager() {
+	public ImportManager() {
+
 	}
 
-	public static void reset() {
+	public void reset() {
 		importedFiles.clear();
 	}
 
-	private static void cache(File file, File cached) {
+	private void cache(File file, File cached) {
 		try {
 			Scope.genAsm(file, cached, true);
 		} catch (Exception e) {
@@ -32,7 +33,7 @@ public final class ImportManager {
 	}
 
 	// Adds an external library
-	public static void addLib(String libName, File file) {
+	public void addLib(String libName, File libRoot, File file) {
 		// Skip if library was already added
 		if (importedFiles.contains(file)) {
 			return;
@@ -51,12 +52,11 @@ public final class ImportManager {
 		}
 
 		// Analyze it
-		FasmAnalyzer analyzer = new FasmAnalyzer(libFile);
+		FasmAnalyzer analyzer = new FasmAnalyzer(libRoot, libFile);
 
-		// TODO
-		// for (var data : analyzer.imports) {
-		// add(data.file);
-		// }
+		for (var data : analyzer.imports) {
+			addLib(libName, libRoot, data.file);
+		}
 
 		// Add library functions
 		for (var entry : analyzer.functions.entrySet()) {
@@ -68,7 +68,7 @@ public final class ImportManager {
 	}
 
 	// Adds a project file
-	public static void add(File file) {
+	public void add(File file) {
 		// Check if a compiled version exists
 		File cached = Utils.convertUncachedLibToCached(file);
 		if (!cached.exists()) {
@@ -76,7 +76,7 @@ public final class ImportManager {
 			cache(file, cached);
 		} else {
 			// If so, check the md5 and see if the file needs to be updated
-			FasmAnalyzer analyzer = new FasmAnalyzer(cached);
+			FasmAnalyzer analyzer = new FasmAnalyzer(Scope.workingDir, cached);
 			String hash = Utils.hashOf(new File(Scope.workingDir, analyzer.source));
 			if (!hash.equals(analyzer.hash)) {
 				// If the hashes do not match, recompile
@@ -99,7 +99,7 @@ public final class ImportManager {
 		importedFiles.add(file);
 	}
 
-	public static File[] getAll() {
+	public File[] getAll() {
 		return importedFiles.toArray(new File[0]);
 	}
 }

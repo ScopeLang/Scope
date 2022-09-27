@@ -13,6 +13,7 @@ import org.apache.commons.io.FilenameUtils;
 
 import com.scopelang.error.ErrorHandler;
 import com.scopelang.fasm.FasmGenerator;
+import com.scopelang.metadata.ImportManager;
 import com.scopelang.preprocess.FuncGatherer;
 import com.scopelang.preprocess.Preprocessor;
 import com.scopelang.preprocess.TokenProcessor;
@@ -143,6 +144,11 @@ public final class Scope {
 						return;
 					}
 
+					if (projXml.testFile == null) {
+						Utils.error("The referenced test file does not exist.");
+						return;
+					}
+
 					// Run then delete
 					noGenCounter = 1;
 					var exe = build(projXml.testFile, true);
@@ -199,6 +205,7 @@ public final class Scope {
 		var errorHandler = new ErrorHandler(sourceFile);
 
 		// Preprocess
+		ImportManager importManager = new ImportManager();
 		Preprocessor preprocessor = new Preprocessor(sourceFile);
 
 		if (errorHandler.errored) {
@@ -217,7 +224,7 @@ public final class Scope {
 
 		// Token process
 		CommonTokenStream stream = new CommonTokenStream(lexer);
-		TokenProcessor tokenProcessor = new TokenProcessor(sourceFile, stream);
+		TokenProcessor tokenProcessor = new TokenProcessor(sourceFile, stream, importManager);
 
 		// Parse
 		ScopeParser parser = new ScopeParser(stream);
@@ -235,7 +242,7 @@ public final class Scope {
 
 		// Generate
 		FasmGenerator generator = new FasmGenerator(sourceFile, outputFile, tokenProcessor,
-			preprocessor, funcGatherer, libraryMode);
+			preprocessor, funcGatherer, importManager, libraryMode);
 		generator.insertHeader();
 		ParseTreeWalker.DEFAULT.walk(generator, tree);
 		generator.finishGen();

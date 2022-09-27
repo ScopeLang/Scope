@@ -18,6 +18,7 @@ public class FasmAnalyzer {
 		}
 	}
 
+	private File root;
 	private String text;
 
 	public ArrayList<ImportMeta> imports = new ArrayList<>();
@@ -26,7 +27,8 @@ public class FasmAnalyzer {
 	public String source = null;
 	public HashMap<String, FuncInfo> functions = new HashMap<>();
 
-	public FasmAnalyzer(File file) {
+	public FasmAnalyzer(File root, File file) {
+		this.root = root;
 		text = Utils.readFile(file);
 
 		analyze();
@@ -67,7 +69,7 @@ public class FasmAnalyzer {
 			j = text.indexOf("\n", i);
 
 			// Get the file
-			File file = new File(Scope.workingDir, text.substring(i, j));
+			File file = new File(root, text.substring(i, j));
 
 			// Add
 			imports.add(new ImportMeta(file, md5));

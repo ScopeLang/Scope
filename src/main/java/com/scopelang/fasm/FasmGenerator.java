@@ -22,6 +22,7 @@ public class FasmGenerator extends ScopeBaseListener {
 	public TokenProcessor tokenProcessor;
 	public Preprocessor preprocessor;
 	public FuncGatherer funcGatherer;
+	public ImportManager importManager;
 	public boolean errored = false;
 	public String md5 = null;
 
@@ -33,12 +34,13 @@ public class FasmGenerator extends ScopeBaseListener {
 	private boolean returnFound = false;
 
 	public FasmGenerator(File sourceFile, File fileName, TokenProcessor tokenProcessor, Preprocessor preprocessor,
-		FuncGatherer funcGatherer, boolean libraryMode) {
+		FuncGatherer funcGatherer, ImportManager importManager, boolean libraryMode) {
 
 		this.sourceFile = sourceFile;
 		this.tokenProcessor = tokenProcessor;
 		this.preprocessor = preprocessor;
 		this.funcGatherer = funcGatherer;
+		this.importManager = importManager;
 		this.libraryMode = libraryMode;
 
 		try {
@@ -131,13 +133,13 @@ public class FasmGenerator extends ScopeBaseListener {
 	}
 
 	private void writeImportMeta() {
-		for (var file : ImportManager.getAll()) {
+		for (var file : importManager.getAll()) {
 			write(";@IMPORT," + Utils.hashOf(file) + "," + Utils.pathRelativeToWorkingDir(file.toPath()).toString());
 		}
 	}
 
 	private void writeImports() {
-		for (var file : ImportManager.getAll()) {
+		for (var file : importManager.getAll()) {
 			String text = Utils.readFile(Utils.convertUncachedLibToCached(file));
 
 			// Append to constants

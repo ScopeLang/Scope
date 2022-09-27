@@ -14,13 +14,15 @@ import com.scopelang.metadata.ImportManager;
 public class TokenProcessor {
 	private File sourceFile;
 	private CommonTokenStream stream;
+	private ImportManager importManager;
 
 	public boolean errored = false;
 	public HashMap<String, Integer> extactedStrings;
 
-	public TokenProcessor(File sourceFile, CommonTokenStream tokenStream) {
+	public TokenProcessor(File sourceFile, CommonTokenStream tokenStream, ImportManager importManager) {
 		this.sourceFile = sourceFile;
 		stream = tokenStream;
+		this.importManager = importManager;
 
 		extactedStrings = new HashMap<String, Integer>();
 
@@ -86,7 +88,7 @@ public class TokenProcessor {
 							String libLoc = lib.path;
 							File importedFile = new File(libLoc,
 								fileName.substring(fileName.indexOf(":") + 1, fileName.length()));
-							ImportManager.addLib(libName, importedFile);
+							importManager.addLib(libName, new File(libLoc), importedFile);
 						} else {
 							Utils.error("Library with name `" + libName + "` was not added to the project.",
 								"To import this library, add the following to your `scope.xml`:",
@@ -96,7 +98,7 @@ public class TokenProcessor {
 						}
 					} else {
 						File importedFile = new File(Scope.workingDir, fileName);
-						ImportManager.add(importedFile);
+						importManager.add(importedFile);
 					}
 				}
 			}

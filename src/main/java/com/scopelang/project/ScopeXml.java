@@ -115,10 +115,10 @@ public class ScopeXml {
 				if (testNode.getLength() >= 1) {
 					testFile = new File(Scope.workingDir, testNode.item(0).getTextContent());
 
+					// Don't show a warning if test doesn't exist
+					// until `scope test` is ran.
 					if (!testFile.exists()) {
-						Utils.error("File referenced in `test` doesn't exist.",
-							"Try making a file named `" + testFile.getName() + "`.");
-						throw new Exception();
+						testFile = null;
 					}
 				}
 
