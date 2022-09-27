@@ -207,3 +207,9 @@ Whitespace
 LineComment
 	: '//' ~[\r\n]* -> skip
 	;
+BlockComment
+	: '/*' .* '*/' -> skip
+	;
+DocComment
+	: '/%' .* '%/' -> skip
+	;
