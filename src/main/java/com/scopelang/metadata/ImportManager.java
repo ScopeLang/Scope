@@ -69,6 +69,11 @@ public class ImportManager {
 
 	// Adds a project file
 	public void add(File file) {
+		// Skip if the file was already added
+		if (importedFiles.contains(file)) {
+			return;
+		}
+
 		// Check if a compiled version exists
 		File cached = Utils.convertUncachedLibToCached(file);
 		if (!cached.exists()) {
