@@ -5,24 +5,24 @@ import java.util.HashMap;
 
 import org.antlr.v4.runtime.*;
 
+import com.scopelang.Modules;
 import com.scopelang.Scope;
 import com.scopelang.ScopeLexer;
 import com.scopelang.Utils;
 import com.scopelang.error.ErrorLoc;
-import com.scopelang.metadata.ImportManager;
 
 public class TokenProcessor {
 	private File sourceFile;
 	private CommonTokenStream stream;
-	private ImportManager importManager;
+	private Modules modules;
 
 	public boolean errored = false;
 	public HashMap<String, Integer> extactedStrings;
 
-	public TokenProcessor(File sourceFile, CommonTokenStream tokenStream, ImportManager importManager) {
+	public TokenProcessor(File sourceFile, CommonTokenStream tokenStream, Modules modules) {
 		this.sourceFile = sourceFile;
 		stream = tokenStream;
-		this.importManager = importManager;
+		this.modules = modules;
 
 		extactedStrings = new HashMap<String, Integer>();
 
@@ -88,7 +88,7 @@ public class TokenProcessor {
 							String libLoc = lib.path;
 							File importedFile = new File(libLoc,
 								fileName.substring(fileName.indexOf(":") + 1, fileName.length()));
-							importManager.addLib(libName, new File(libLoc), importedFile);
+							modules.importManager.addLib(libName, new File(libLoc), importedFile);
 						} else {
 							Utils.error("Library with name `" + libName + "` was not added to the project.",
 								"To import this library, add the following to your `scope.xml`:",
@@ -98,7 +98,7 @@ public class TokenProcessor {
 						}
 					} else {
 						File importedFile = new File(Scope.workingDir, fileName);
-						importManager.add(importedFile);
+						modules.importManager.add(importedFile);
 					}
 				}
 			}

@@ -11,18 +11,13 @@ import org.apache.commons.io.IOUtils;
 import com.scopelang.*;
 import com.scopelang.ScopeParser.*;
 import com.scopelang.error.ErrorLoc;
-import com.scopelang.metadata.ImportManager;
-import com.scopelang.preprocess.*;
 
 public class FasmGenerator extends ScopeBaseListener {
 	private File sourceFile;
 	private PrintWriter writer;
 	private boolean libraryMode;
 
-	public TokenProcessor tokenProcessor;
-	public Preprocessor preprocessor;
-	public FuncGatherer funcGatherer;
-	public ImportManager importManager;
+	private Modules modules;
 	public boolean errored = false;
 	public String md5 = null;
 
@@ -33,14 +28,10 @@ public class FasmGenerator extends ScopeBaseListener {
 	private boolean isFuncVoid = false;
 	private boolean returnFound = false;
 
-	public FasmGenerator(File sourceFile, File fileName, TokenProcessor tokenProcessor, Preprocessor preprocessor,
-		FuncGatherer funcGatherer, ImportManager importManager, boolean libraryMode) {
+	public FasmGenerator(File sourceFile, File fileName, Modules modules, boolean libraryMode) {
 
 		this.sourceFile = sourceFile;
-		this.tokenProcessor = tokenProcessor;
-		this.preprocessor = preprocessor;
-		this.funcGatherer = funcGatherer;
-		this.importManager = importManager;
+		this.modules = modules;
 		this.libraryMode = libraryMode;
 
 		try {
@@ -133,13 +124,13 @@ public class FasmGenerator extends ScopeBaseListener {
 	}
 
 	private void writeImportMeta() {
-		for (var file : importManager.getAll()) {
+		for (var file : modules.importManager.getAll()) {
 			write(";@IMPORT," + Utils.hashOf(file) + "," + Utils.pathRelativeToWorkingDir(file.toPath()).toString());
 		}
 	}
 
 	private void writeImports() {
-		for (var file : importManager.getAll()) {
+		for (var file : modules.importManager.getAll()) {
 			String text = Utils.readFile(Utils.convertUncachedLibToCached(file));
 
 			// Append to constants
@@ -155,7 +146,7 @@ public class FasmGenerator extends ScopeBaseListener {
 	}
 
 	private void writeStrings() {
-		for (var entry : tokenProcessor.extactedStrings.entrySet()) {
+		for (var entry : modules.tokenProcessor.extactedStrings.entrySet()) {
 			String name = "s_" + md5 + "_" + entry.getValue();
 			String str = Utils.processLiteral(entry.getKey());
 
@@ -217,7 +208,7 @@ public class FasmGenerator extends ScopeBaseListener {
 			write("\tcall init");
 		}
 
-		codeblock = new Codeblock(this);
+		codeblock = new Codeblock(modules);
 
 		// Error if there are too many parameters
 		var params = ctx.parameters().parameter();
@@ -344,7 +335,14 @@ public class FasmGenerator extends ScopeBaseListener {
 	public void exitInvoke(InvokeContext ctx) {
 		String ident = ctx.Identifier().getText();
 		if (ident.equals("print")) {
-			ExprEvaluator.eval(codeblock, ctx.arguments().expr(0));
+			var t = ExprEvaluator.eval(codeblock, ctx.arguments().expr(0));
+			if (!t.equals(ScopeType.STR)) {
+				Utils.error(locationOf(ctx.start),
+					"Function `print` does not have an appropiate parameter list `" + t + "`.",
+					"Try changing the parameter types to `str`.");
+				errored = true;
+				return;
+			}
 			codeblock.add("call print");
 		} else {
 			codeblock.addInvoke(ident, ctx.arguments().expr(), locationOf(ctx.start));

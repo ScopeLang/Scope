@@ -5,7 +5,6 @@ import org.antlr.v4.runtime.Token;
 import com.scopelang.ScopeType;
 import com.scopelang.Utils;
 import com.scopelang.ScopeParser.*;
-import com.scopelang.preprocess.FuncGatherer;
 
 public final class AtomEvaluator {
 	private AtomEvaluator() {
@@ -18,8 +17,8 @@ public final class AtomEvaluator {
 		} else if (ctx.Identifier() != null && ctx.LeftParen() != null && ctx.RightParen() != null) {
 			// Handle invoke
 			String name = ctx.Identifier().getText();
-			cb.addInvoke(name, ctx.arguments().expr(), cb.generator.locationOf(ctx.start));
-			return FuncGatherer.returnTypeOf(name);
+			cb.addInvoke(name, ctx.arguments().expr(), cb.locationOf(ctx.start));
+			return cb.modules.funcGatherer.returnTypeOf(name);
 		} else if (ctx.Identifier() != null) {
 			// Handle variables
 			String name = ctx.Identifier().getText();
@@ -36,11 +35,11 @@ public final class AtomEvaluator {
 			String closest = Utils.closestMatch(name, cb.allVarNames().stream());
 
 			if (closest != null) {
-				Utils.error(cb.generator.locationOf(symbol),
+				Utils.error(cb.locationOf(symbol),
 					"Variable with name `" + name + "` doesn't exist.",
 					"Did you mean `" + closest + "`?");
 			} else {
-				Utils.error(cb.generator.locationOf(symbol),
+				Utils.error(cb.locationOf(symbol),
 					"Variable with name `" + name + "` doesn't exist.",
 					"You can defined a variable like so:",
 					"string " + name + " = \"Test\";");
@@ -66,9 +65,9 @@ public final class AtomEvaluator {
 				return ScopeType.STR;
 			}
 
-			int index = cb.generator.tokenProcessor.extactedStrings.get(str);
+			int index = cb.modules.tokenProcessor.extactedStrings.get(str);
 
-			String name = "s_" + cb.generator.md5 + "_" + index;
+			String name = "s_" + cb.modules.generator.md5 + "_" + index;
 			cb.add("lea rdi, [" + name + "]");
 			cb.add("mov rsi, " + name + ".size");
 			return ScopeType.STR;
@@ -79,7 +78,7 @@ public final class AtomEvaluator {
 			try {
 				Long.parseLong(strValue);
 			} catch (Exception e) {
-				Utils.error(cb.generator.locationOf(ctx.start),
+				Utils.error(cb.locationOf(ctx.start),
 					"Integer literal value must be between -9,223,372,036,854,775,808 and 9,223,372,036,854,775,807.",
 					"Try using a `long` for bigger values.");
 				cb.errored = true;

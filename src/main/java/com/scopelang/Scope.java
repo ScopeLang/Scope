@@ -14,9 +14,7 @@ import org.apache.commons.io.FilenameUtils;
 import com.scopelang.error.ErrorHandler;
 import com.scopelang.fasm.FasmGenerator;
 import com.scopelang.metadata.ImportManager;
-import com.scopelang.preprocess.FuncGatherer;
-import com.scopelang.preprocess.Preprocessor;
-import com.scopelang.preprocess.TokenProcessor;
+import com.scopelang.preprocess.*;
 import com.scopelang.project.ScopeXml;
 
 import net.lingala.zip4j.ZipFile;
@@ -193,11 +191,13 @@ public final class Scope {
 		System.out.println(" clean   Deletes all cache files.");
 	}
 
-	public static void genAsm(File sourceFile, File outputFile, boolean libraryMode) {
+	public static Modules genAsm(File sourceFile, File outputFile, boolean libraryMode) {
+		Modules modules = new Modules();
+
 		// Quick hack to prevent librar comp issue
 		// Will be removed eventually
 		if (noGenCounter == 0) {
-			return;
+			return modules;
 		} else if (noGenCounter != -1) {
 			noGenCounter--;
 		}
@@ -205,50 +205,51 @@ public final class Scope {
 		var errorHandler = new ErrorHandler(sourceFile);
 
 		// Preprocess
-		ImportManager importManager = new ImportManager();
-		Preprocessor preprocessor = new Preprocessor(sourceFile);
+		modules.funcGatherer = new FuncGatherer();
+		modules.importManager = new ImportManager(modules);
+		modules.preprocessor = new Preprocessor(sourceFile);
 
 		if (errorHandler.errored) {
 			Utils.forceExit();
 		}
 
 		// Lex
-		CharStream inputStream = CharStreams.fromString(preprocessor.get());
-		ScopeLexer lexer = new ScopeLexer(inputStream);
-		lexer.removeErrorListener(ConsoleErrorListener.INSTANCE);
-		lexer.addErrorListener(errorHandler);
+		CharStream inputStream = CharStreams.fromString(modules.preprocessor.get());
+		modules.lexer = new ScopeLexer(inputStream);
+		modules.lexer.removeErrorListener(ConsoleErrorListener.INSTANCE);
+		modules.lexer.addErrorListener(errorHandler);
 
 		if (errorHandler.errored) {
 			Utils.forceExit();
 		}
 
 		// Token process
-		CommonTokenStream stream = new CommonTokenStream(lexer);
-		TokenProcessor tokenProcessor = new TokenProcessor(sourceFile, stream, importManager);
+		CommonTokenStream stream = new CommonTokenStream(modules.lexer);
+		modules.tokenProcessor = new TokenProcessor(sourceFile, stream, modules);
 
 		// Parse
-		ScopeParser parser = new ScopeParser(stream);
-		parser.removeErrorListener(ConsoleErrorListener.INSTANCE);
-		parser.addErrorListener(errorHandler);
-		ParseTree tree = parser.program();
+		modules.parser = new ScopeParser(stream);
+		modules.parser.removeErrorListener(ConsoleErrorListener.INSTANCE);
+		modules.parser.addErrorListener(errorHandler);
+		ParseTree tree = modules.parser.program();
 
 		if (errorHandler.errored) {
 			Utils.forceExit();
 		}
 
 		// Gather info
-		FuncGatherer funcGatherer = new FuncGatherer();
-		ParseTreeWalker.DEFAULT.walk(funcGatherer, tree);
+		ParseTreeWalker.DEFAULT.walk(modules.funcGatherer, tree);
 
 		// Generate
-		FasmGenerator generator = new FasmGenerator(sourceFile, outputFile, tokenProcessor,
-			preprocessor, funcGatherer, importManager, libraryMode);
-		generator.insertHeader();
-		ParseTreeWalker.DEFAULT.walk(generator, tree);
-		generator.finishGen();
+		modules.generator = new FasmGenerator(sourceFile, outputFile, modules, libraryMode);
+		modules.generator.insertHeader();
+		ParseTreeWalker.DEFAULT.walk(modules.generator, tree);
+		modules.generator.finishGen();
 
 		// Log
 		Utils.log("Generated and cached `" + Utils.pathRelativeToWorkingDir(outputFile.toPath()).toString() + "`.");
+
+		return modules;
 	}
 
 	private static File build(File mainFile, boolean run) {

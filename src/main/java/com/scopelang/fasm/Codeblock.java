@@ -7,11 +7,11 @@ import java.util.Set;
 import java.util.Stack;
 
 import org.antlr.v4.runtime.ParserRuleContext;
+import org.antlr.v4.runtime.Token;
 
 import com.scopelang.*;
 import com.scopelang.ScopeParser.ExprContext;
 import com.scopelang.error.ErrorLoc;
-import com.scopelang.preprocess.FuncGatherer;
 
 public class Codeblock {
 	public static class VariableInfo {
@@ -28,7 +28,7 @@ public class Codeblock {
 
 	public boolean errored = false;
 
-	public FasmGenerator generator;
+	public Modules modules;
 
 	private int currentScope = 0;
 	private int localVariableNext = 0;
@@ -42,8 +42,8 @@ public class Codeblock {
 
 	public int indent = 1;
 
-	public Codeblock(FasmGenerator generator) {
-		this.generator = generator;
+	public Codeblock(Modules modules) {
+		this.modules = modules;
 	}
 
 	private void write(String str) {
@@ -80,8 +80,9 @@ public class Codeblock {
 				"}");
 			errored = true;
 			return;
-		} else if (!FuncGatherer.exists(ident)) {
-			String closest = Utils.closestMatch(ident, FuncGatherer.allFuncNames().stream());
+		} else if (!modules.funcGatherer.exists(ident)) {
+			String closest = Utils.closestMatch(ident,
+				modules.funcGatherer.allFuncNames().stream());
 
 			if (closest != null) {
 				Utils.error(loc,
@@ -132,9 +133,9 @@ public class Codeblock {
 
 	public boolean varExistsOrError(String name, ParserRuleContext ctx) {
 		if (!varExists(name)) {
-			Utils.error(generator.locationOf(ctx.start),
+			Utils.error(modules.generator.locationOf(ctx.start),
 				"Variable `" + name + "` was not defined yet in this scope.");
-			generator.errored = true;
+			modules.generator.errored = true;
 			return false;
 		}
 
@@ -143,10 +144,10 @@ public class Codeblock {
 
 	public boolean varNotExistsOrError(String name, ParserRuleContext ctx) {
 		if (varExists(name)) {
-			Utils.error(generator.locationOf(ctx.start),
+			Utils.error(modules.generator.locationOf(ctx.start),
 				"Variable `" + name + "` was already defined in this scope.",
 				"Try to keep variable names concise and readable.");
-			generator.errored = true;
+			modules.generator.errored = true;
 			return false;
 		}
 
@@ -211,6 +212,10 @@ public class Codeblock {
 	public void decreaseScope() {
 		currentScope--;
 		localVariables.entrySet().removeIf(kv -> kv.getValue().scope > currentScope);
+	}
+
+	public ErrorLoc locationOf(Token token) {
+		return modules.generator.locationOf(token);
 	}
 
 	@Override

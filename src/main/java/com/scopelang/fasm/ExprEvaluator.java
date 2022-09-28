@@ -241,7 +241,7 @@ public final class ExprEvaluator {
 			return type;
 		}
 
-		Utils.error(cb.generator.locationOf(ctx.start),
+		Utils.error(cb.locationOf(ctx.start),
 			"No operator `" + opType + "` that has the arguments `" + left + "` and `" + right + "`.");
 		cb.errored = true;
 		return ScopeType.VOID;

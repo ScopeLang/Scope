@@ -5,30 +5,32 @@ import java.util.ArrayList;
 
 import org.apache.commons.io.FilenameUtils;
 
+import com.scopelang.Modules;
 import com.scopelang.Scope;
 import com.scopelang.Utils;
-import com.scopelang.preprocess.FuncGatherer;
 
 public class ImportManager {
+	private Modules modules;
+
 	private ArrayList<File> importedFiles = new ArrayList<>();
 
-	public ImportManager() {
-
+	public ImportManager(Modules modules) {
+		this.modules = modules;
 	}
 
 	public void reset() {
 		importedFiles.clear();
 	}
 
-	private void cache(File file, File cached) {
+	private Modules cache(File file, File cached) {
 		try {
-			Scope.genAsm(file, cached, true);
+			return Scope.genAsm(file, cached, true);
 		} catch (Exception e) {
 			String relativePath = Utils.pathRelativeToWorkingDir(file.toPath()).toString();
 			Utils.error("Could not generate imported file `" + relativePath + "`.");
 			e.printStackTrace();
 			Utils.forceExit();
-			return;
+			return null;
 		}
 	}
 
@@ -60,7 +62,7 @@ public class ImportManager {
 
 		// Add library functions
 		for (var entry : analyzer.functions.entrySet()) {
-			FuncGatherer.addLibFunc(entry.getKey(), entry.getValue());
+			modules.funcGatherer.addLibFunc(entry.getKey(), entry.getValue());
 		}
 
 		// Add it to the list
@@ -77,8 +79,8 @@ public class ImportManager {
 		// Check if a compiled version exists
 		File cached = Utils.convertUncachedLibToCached(file);
 		if (!cached.exists()) {
-			// If not, compile it (imports will be added)
-			cache(file, cached);
+			var o = cache(file, cached);
+			merge(o);
 		} else {
 			// If so, check the md5 and see if the file needs to be updated
 			FasmAnalyzer analyzer = new FasmAnalyzer(Scope.workingDir, cached);
@@ -86,7 +88,8 @@ public class ImportManager {
 			if (!hash.equals(analyzer.hash)) {
 				// If the hashes do not match, recompile
 				Utils.log("Changes detected in `" + analyzer.source + "`. Recompiling.");
-				cache(file, cached);
+				var o = cache(file, cached);
+				merge(o);
 			} else {
 				// Else, read the metadata and import manually
 				for (var data : analyzer.imports) {
@@ -95,7 +98,8 @@ public class ImportManager {
 
 				// Add library functions
 				for (var entry : analyzer.functions.entrySet()) {
-					FuncGatherer.addLibFunc(entry.getKey(), entry.getValue());
+					modules.funcGatherer.addLibFunc(entry.getKey(),
+						entry.getValue());
 				}
 			}
 		}
@@ -104,7 +108,12 @@ public class ImportManager {
 		importedFiles.add(file);
 	}
 
+	private void merge(Modules other) {
+		modules.funcGatherer.merge(other.funcGatherer);
+	}
+
 	public File[] getAll() {
 		return importedFiles.toArray(new File[0]);
 	}
 }
+// quinn was here
