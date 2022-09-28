@@ -208,8 +208,8 @@ LineComment
 	: '//' ~[\r\n]* -> skip
 	;
 BlockComment
-	: '/*' .* '*/' -> skip
+	: '/*' .*? '*/' -> skip
 	;
 DocComment
-	: '/%' .* '%/' -> skip
+	: '/%' .*? '%/' -> skip
 	;

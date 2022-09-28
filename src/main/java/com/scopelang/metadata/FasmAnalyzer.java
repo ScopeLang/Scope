@@ -39,7 +39,14 @@ public class FasmAnalyzer {
 		// any tampering with the metadata can cause ERRORS
 
 		// Analyze file type
-		int fileIndex = text.indexOf(";@FILE") + 7;
+		int fileIndex = text.indexOf(";@FILE");
+		if (fileIndex == -1) {
+			Utils.error("Could not find file metadata.");
+			Utils.forceExit();
+			return;
+		}
+		fileIndex += 7;
+
 		int comma = text.indexOf(",", fileIndex);
 		type = text.substring(fileIndex, comma);
 
