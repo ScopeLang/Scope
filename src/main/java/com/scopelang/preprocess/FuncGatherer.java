@@ -1,5 +1,6 @@
 package com.scopelang.preprocess;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Set;
 
@@ -19,8 +20,16 @@ public class FuncGatherer extends ScopeBaseListener {
 			return;
 		}
 
+		// Get return type
 		var type = ScopeType.fromTypeNameCtx(ctx.typeName());
-		functions.put(ident, new FuncInfo(type));
+
+		// Get argument types
+		ArrayList<ScopeType> args = new ArrayList<>();
+		for (var param : ctx.parameters().parameter()) {
+			args.add(ScopeType.fromTypeNameCtx(param.typeName()));
+		}
+
+		functions.put(ident, new FuncInfo(type, args.toArray(ScopeType[]::new)));
 	}
 
 	public void addLibFunc(String name, FuncInfo info) {
@@ -33,6 +42,14 @@ public class FuncGatherer extends ScopeBaseListener {
 
 	public ScopeType returnTypeOf(String name) {
 		return functions.get(name).returnType;
+	}
+
+	public ScopeType nthArgOf(String name, int n) {
+		return functions.get(name).argTypes[n];
+	}
+
+	public int numberOfArgs(String name) {
+		return functions.get(name).argTypes.length;
 	}
 
 	public Set<String> allFuncNames() {

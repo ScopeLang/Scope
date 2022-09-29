@@ -91,8 +91,15 @@ public class FasmAnalyzer {
 			int end = text.indexOf("\n", i);
 			String[] data = text.substring(i, end).split(",");
 
+			// Get args
+			ArrayList<ScopeType> args = new ArrayList<>();
+			for (int j = 2; j < data.length; j++) {
+				args.add(ScopeType.parseFromString(data[j]));
+			}
+
 			// Add function to gatherer
-			var funcInfo = new FuncInfo(ScopeType.parseFromString(data[1]));
+			var funcInfo = new FuncInfo(ScopeType.parseFromString(data[1]), 
+				args.toArray(ScopeType[]::new));
 			functions.put(data[0], funcInfo);
 		}
 	}

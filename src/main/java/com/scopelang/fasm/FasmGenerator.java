@@ -200,8 +200,14 @@ public class FasmGenerator extends ScopeBaseListener {
 		String ident = ctx.Identifier().getText();
 		var returnType = ScopeType.fromTypeNameCtx(ctx.typeName());
 
+		// Generate metadata
+		String meta = ";@FUNC," + ident + "," + returnType;
+		for (var param : ctx.parameters().parameter()) {
+			meta += "," + ScopeType.fromTypeNameCtx(param.typeName());
+		}
+
 		// Write function header
-		write(";@FUNC," + ident + "," + returnType);
+		write(meta);
 		write("f_" + ident + ":");
 		if (ident.equals("main")) {
 			mainFound = true;

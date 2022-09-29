@@ -99,13 +99,27 @@ public class Codeblock {
 
 			errored = true;
 			return;
+		} else if (modules.funcGatherer.numberOfArgs(ident) != exprs.size()) {
+			Utils.error(loc,
+				"No function `" + ident + "` with " + exprs.size() + " arguments.",
+				"Are you missing arguments?");
+			errored = true;
+			return;
 		}
 
 		// Push all of the arguments
 		for (int i = 0; i < exprs.size(); i++) {
-			ExprEvaluator.eval(this, exprs.get(i));
+			var t = ExprEvaluator.eval(this, exprs.get(i));
 			add("vlist_set " + localVariableNext++);
 			add("push rax");
+
+			var expected = modules.funcGatherer.nthArgOf(ident, i);
+			if (!expected.equals(t)) {
+				Utils.error(loc, "Argument " + (i + 1) + " does not have the correct type of `" + expected + "`.",
+					"Try changing the argument type from `" + t + "` to `" + expected + "`.");
+				errored = true;
+				return;
+			}
 		}
 
 		// And then move them (to prevent conflicts)
