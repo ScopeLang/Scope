@@ -21,6 +21,8 @@ public class FasmGenerator extends ScopeBaseListener {
 	public boolean errored = false;
 	public String md5 = null;
 
+	private Identifier namespace = null;
+
 	public Codeblock codeblock = null;
 
 	private boolean mainFound = false;
@@ -197,19 +199,28 @@ public class FasmGenerator extends ScopeBaseListener {
 
 	@Override
 	public void enterFunction(FunctionContext ctx) {
-		String ident = ctx.Identifier().getText();
+		// Check if main is in a namespace
+		if (ctx.Identifier().getText().equals("main") && namespace != null) {
+			Utils.error(locationOf(ctx.start),
+				"The `main` function cannot be in a namespace.",
+				"Remove the `namespace` statement in this file.");
+			errored = true;
+			return;
+		}
+
+		Identifier ident = new Identifier(namespace, ctx.Identifier().getText());
 		var returnType = ScopeType.fromTypeNameCtx(ctx.typeName());
 
 		// Generate metadata
-		String meta = ";@FUNC," + ident + "," + returnType;
+		String meta = ";@FUNC," + ident.get() + "," + returnType;
 		for (var param : ctx.parameters().parameter()) {
 			meta += "," + ScopeType.fromTypeNameCtx(param.typeName());
 		}
 
 		// Write function header
 		write(meta);
-		write("f_" + ident + ":");
-		if (ident.equals("main")) {
+		write("f_" + ident.get() + ":");
+		if (ident.equalsStr("main")) {
 			mainFound = true;
 			write("\tcall init");
 		}
@@ -339,8 +350,8 @@ public class FasmGenerator extends ScopeBaseListener {
 
 	@Override
 	public void exitInvoke(InvokeContext ctx) {
-		String ident = ctx.Identifier().getText();
-		if (ident.equals("print")) {
+		Identifier ident = new Identifier(ctx.fullIdent());
+		if (ident.equalsStr("print")) {
 			var t = ExprEvaluator.eval(codeblock, ctx.arguments().expr(0));
 			if (!t.equals(ScopeType.STR)) {
 				Utils.error(locationOf(ctx.start),
@@ -624,5 +635,10 @@ public class FasmGenerator extends ScopeBaseListener {
 		// Add it all
 		codeblock.add(asm);
 		codeblock.add(";@ASM_END");
+	}
+
+	@Override
+	public void enterNamespace(NamespaceContext ctx) {
+		namespace = new Identifier(ctx.fullIdent());
 	}
 }

@@ -63,9 +63,9 @@ public class Codeblock {
 		instructions.add(instruction);
 	}
 
-	public void addInvoke(String ident, List<ExprContext> exprs, ErrorLoc loc) {
+	public void addInvoke(Identifier ident, List<ExprContext> exprs, ErrorLoc loc) {
 		// Check for errors
-		if (ident.equals("main")) {
+		if (ident.equalsStr("main")) {
 			Utils.error(loc,
 				"The `main` function cannot be called manually.",
 				"Try moving the contents of main into a different function",
@@ -81,13 +81,13 @@ public class Codeblock {
 			errored = true;
 			return;
 		} else if (!modules.funcGatherer.exists(ident)) {
-			String closest = Utils.closestMatch(ident,
-				modules.funcGatherer.allFuncNames().stream());
+			String closest = Utils.closestMatch(ident.get(),
+				modules.funcGatherer.allFuncNamesStr());
 
 			if (closest != null) {
 				Utils.error(loc,
 					"Function with name `" + ident + "` doesn't exist!",
-					"Did you mean `" + closest + "`?");
+					"Did you mean `" + Identifier.toReadable(closest) + "`?");
 			} else {
 				Utils.error(loc,
 					"Function with name `" + ident + "` doesn't exist!",
@@ -127,7 +127,7 @@ public class Codeblock {
 			add("pop " + Utils.ARG_REGS[i]);
 		}
 
-		add("call f_" + ident);
+		add("call f_" + ident.get());
 	}
 
 	public void startReturn() {

@@ -5,6 +5,7 @@ import java.util.ArrayList;
 
 import org.apache.commons.io.FilenameUtils;
 
+import com.scopelang.Identifier;
 import com.scopelang.Modules;
 import com.scopelang.Scope;
 import com.scopelang.Utils;
@@ -62,7 +63,8 @@ public class ImportManager {
 
 		// Add library functions
 		for (var entry : analyzer.functions.entrySet()) {
-			modules.funcGatherer.addLibFunc(entry.getKey(), entry.getValue());
+			modules.funcGatherer.addLibFunc(new Identifier(entry.getKey()),
+				entry.getValue());
 		}
 
 		// Add it to the list
@@ -98,8 +100,8 @@ public class ImportManager {
 
 				// Add library functions
 				for (var entry : analyzer.functions.entrySet()) {
-					modules.funcGatherer.addLibFunc(entry.getKey(),
-						entry.getValue());
+					modules.funcGatherer.addLibFunc(
+						new Identifier(entry.getKey()), entry.getValue());
 				}
 			}
 		}

@@ -34,6 +34,7 @@ innerStatement
 outerStatement
 	: ImportKeyword StringLiteral EndLine
 	| function
+	| namespace
 	;
 
 parameter
@@ -49,7 +50,7 @@ arguments
 
 // Inner statements
 invoke
-	: Identifier '(' arguments ')'
+	: fullIdent '(' arguments ')'
 	;
 declare
 	: typeName Identifier '=' expr
@@ -91,6 +92,9 @@ assembly
 function
 	: FuncKeyword typeName Identifier '(' parameters ')' (codeblock | EndLine)
 	;
+namespace
+	: NamespaceKeyword fullIdent EndLine
+	;
 
 // Expressions
 expr
@@ -106,7 +110,7 @@ expr
 	;
 atom
 	: literals
-	| Identifier '(' arguments ')'
+	| fullIdent '(' arguments ')'
 	| Identifier
 	;
 literals
@@ -122,6 +126,9 @@ typeName
 	| IntType
 	| BoolType
 	| DecType
+	;
+fullIdent
+	: Identifier ('::' Identifier)*
 	;
 
 // =============== //
@@ -158,6 +165,7 @@ LessThan: '<';
 Cast: '->';
 Where: ':';
 Range: '..';
+Resolve: '::';
 
 // Keywords
 FuncKeyword: 'func';
@@ -169,6 +177,7 @@ ElseKeyword: 'else';
 WhileKeyword: 'while';
 ForKeyword: 'for';
 StepKeyword: 'step';
+NamespaceKeyword: 'namespace';
 
 // Primitive types
 VoidType: 'void';

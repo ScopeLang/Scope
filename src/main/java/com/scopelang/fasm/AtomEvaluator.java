@@ -2,6 +2,7 @@ package com.scopelang.fasm;
 
 import org.antlr.v4.runtime.Token;
 
+import com.scopelang.Identifier;
 import com.scopelang.ScopeType;
 import com.scopelang.Utils;
 import com.scopelang.ScopeParser.*;
@@ -16,7 +17,7 @@ public final class AtomEvaluator {
 			return evalLiteral(cb, ctx.literals());
 		} else if (ctx.Identifier() != null && ctx.LeftParen() != null && ctx.RightParen() != null) {
 			// Handle invoke
-			String name = ctx.Identifier().getText();
+			var name = new Identifier(ctx.fullIdent());
 			cb.addInvoke(name, ctx.arguments().expr(), cb.locationOf(ctx.start));
 			return cb.modules.funcGatherer.returnTypeOf(name);
 		} else if (ctx.Identifier() != null) {
