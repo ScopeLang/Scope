@@ -15,19 +15,13 @@ import com.scopelang.error.ErrorHandler;
 import com.scopelang.fasm.FasmGenerator;
 import com.scopelang.metadata.ImportManager;
 import com.scopelang.preprocess.*;
+import com.scopelang.project.ProjectCompileTask;
 import com.scopelang.project.ScopeXml;
 
 import net.lingala.zip4j.ZipFile;
 import net.lingala.zip4j.model.ZipParameters;
 
 public final class Scope {
-	public static File workingDir = null;
-	public static File cacheDir = null;
-	public static File libDir = null;
-	public static ScopeXml projXml = null;
-
-	private static int noGenCounter = -1;
-
 	private Scope() {
 	}
 
@@ -65,13 +59,14 @@ public final class Scope {
 
 			// Set the working directory from the -d flag
 			String dir = cmd.getOptionValue("dir");
+			File workingDir;
 			if (dir != null) {
 				workingDir = new File(dir);
 			} else {
 				workingDir = new File(System.getProperty("user.dir"));
 			}
 
-			// Check for scope.xml
+			// Check and read scope.xml
 			File xmlFile = new File(workingDir, "scope.xml");
 			if (!xmlFile.exists()) {
 				Utils.error("`scope.xml` does not exist!",
@@ -87,32 +82,37 @@ public final class Scope {
 					"your scope code in it.");
 				return;
 			}
+			var projXml = new ScopeXml(xmlFile);
 
-			// Read scope.xml
-			projXml = new ScopeXml(xmlFile);
+			// If clean mode, clean
+			if (mode.equals("clean")) {
+				if (projXml.mode.equals("library")) {
+					// Delete all scopelib and scopeasm files
+					Files.walk(workingDir.toPath())
+						.filter(Files::isRegularFile).forEach(p -> {
+							var f = p.toFile();
+							if (f.getName().endsWith(".scopelib") ||
+								f.getName().endsWith(".scopeasm")) {
 
-			// Create .cache and .lib folder (if it doesn't exist and the mode has one)
-			if (projXml.mode.equals("project")) {
-				cacheDir = new File(workingDir, ".cache");
-				libDir = new File(workingDir, ".lib");
-				try {
-					Files.createDirectories(cacheDir.toPath());
-					Files.createDirectories(libDir.toPath());
-				} catch (IOException e) {
-					Utils.error("Unable to create cache folder.");
-					if (!Utils.disableLog) {
-						e.printStackTrace();
+								f.delete();
+							}
+						});
+				} else {
+					try {
+						// Delete cache folders
+						FileUtils.deleteDirectory(new File(workingDir, ".cache"));
+						FileUtils.deleteDirectory(new File(workingDir, ".lib"));
+					} catch (IOException e) {
+						Utils.error("Could not delete cache folder.");
+						if (!Utils.disableLog) {
+							e.printStackTrace();
+						}
+						return;
 					}
-					return;
 				}
-			} else if (projXml.mode.equals("library")) {
-				cacheDir = workingDir;
 			}
 
-			// Solve libs
-			if (!mode.equals("clean")) {
-				projXml.solveLibraries();
-			}
+			var task = new ProjectCompileTask(projXml);
 
 			// Build/run or whatever
 			switch (mode) {
@@ -152,28 +152,6 @@ public final class Scope {
 					var exe = build(projXml.testFile, true);
 					exe.delete();
 
-					break;
-				case "clean":
-					if (projXml.mode.equals("library")) {
-						// Delete all scopelib files
-						for (File f : workingDir.listFiles()) {
-							if (f.getName().endsWith(".scopelib")) {
-								f.delete();
-							}
-						}
-					} else {
-						try {
-							// Delete .cache folder
-							FileUtils.deleteDirectory(cacheDir);
-							FileUtils.deleteDirectory(libDir);
-						} catch (IOException e) {
-							Utils.error("Could not delete cache folder.");
-							if (!Utils.disableLog) {
-								e.printStackTrace();
-							}
-							return;
-						}
-					}
 					break;
 				default:
 					printHelp(formatter, options);
