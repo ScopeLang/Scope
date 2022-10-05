@@ -169,67 +169,6 @@ public final class Scope {
 		System.out.println(" clean   Deletes all cache files.");
 	}
 
-	public static Modules genAsm(File sourceFile, File outputFile, boolean libraryMode) {
-		Modules modules = new Modules();
-
-		// Quick hack to prevent librar comp issue
-		// Will be removed eventually
-		if (noGenCounter == 0) {
-			return modules;
-		} else if (noGenCounter != -1) {
-			noGenCounter--;
-		}
-
-		var errorHandler = new ErrorHandler(sourceFile);
-
-		// Preprocess
-		modules.funcGatherer = new FuncGatherer();
-		modules.importManager = new ImportManager(modules);
-		modules.preprocessor = new Preprocessor(sourceFile);
-
-		if (errorHandler.errored) {
-			Utils.forceExit();
-		}
-
-		// Lex
-		CharStream inputStream = CharStreams.fromString(modules.preprocessor.get());
-		modules.lexer = new ScopeLexer(inputStream);
-		modules.lexer.removeErrorListener(ConsoleErrorListener.INSTANCE);
-		modules.lexer.addErrorListener(errorHandler);
-
-		if (errorHandler.errored) {
-			Utils.forceExit();
-		}
-
-		// Token process
-		CommonTokenStream stream = new CommonTokenStream(modules.lexer);
-		modules.tokenProcessor = new TokenProcessor(sourceFile, stream, modules);
-
-		// Parse
-		modules.parser = new ScopeParser(stream);
-		modules.parser.removeErrorListener(ConsoleErrorListener.INSTANCE);
-		modules.parser.addErrorListener(errorHandler);
-		ParseTree tree = modules.parser.program();
-
-		if (errorHandler.errored) {
-			Utils.forceExit();
-		}
-
-		// Gather info
-		ParseTreeWalker.DEFAULT.walk(modules.funcGatherer, tree);
-
-		// Generate
-		modules.generator = new FasmGenerator(sourceFile, outputFile, modules, libraryMode);
-		modules.generator.insertHeader();
-		ParseTreeWalker.DEFAULT.walk(modules.generator, tree);
-		modules.generator.finishGen();
-
-		// Log
-		Utils.log("Generated and cached `" + Utils.pathRelativeToWorkingDir(outputFile.toPath()).toString() + "`.");
-
-		return modules;
-	}
-
 	private static File build(File mainFile, boolean run) {
 		// Generate ASM
 		String baseName = FilenameUtils.getBaseName(mainFile.getPath());

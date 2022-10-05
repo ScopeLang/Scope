@@ -36,5 +36,8 @@ public class ProjectCompileTask {
 
 		// Get libraries from web
 		xml.solveLibraries();
+
+		// Compile main file
+		// -> compiles libraries recursively
 	}
 }

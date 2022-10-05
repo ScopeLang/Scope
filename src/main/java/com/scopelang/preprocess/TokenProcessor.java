@@ -6,7 +6,6 @@ import java.util.HashMap;
 import org.antlr.v4.runtime.*;
 
 import com.scopelang.Modules;
-import com.scopelang.Scope;
 import com.scopelang.ScopeLexer;
 import com.scopelang.Utils;
 import com.scopelang.error.ErrorLoc;
@@ -63,9 +62,8 @@ public class TokenProcessor {
 					inImport = true;
 				}
 			} else {
+				inImport = false;
 				if (token.getType() == ScopeLexer.StringLiteral) {
-					inImport = false;
-
 					// Get and check file name
 					String fileName = token.getText().substring(1, token.getText().length() - 1);
 					if (fileName.contains(".")) {
@@ -75,31 +73,14 @@ public class TokenProcessor {
 						errored = true;
 						continue;
 					}
-					fileName += ".scope";
 
 					// Add the file to libraries
-					if (fileName.contains(":")) {
-						// Get the library
-						String libName = fileName.substring(0, fileName.indexOf(":"));
-						var lib = Scope.projXml.libraryInfoByName(libName);
-
-						// Add to ImportManager
-						if (lib != null) {
-							String libLoc = lib.path;
-							File importedFile = new File(libLoc,
-								fileName.substring(fileName.indexOf(":") + 1, fileName.length()));
-							modules.importManager.addLib(libName, new File(libLoc), importedFile);
-						} else {
-							Utils.error("Library with name `" + libName + "` was not added to the project.",
-								"To import this library, add the following to your `scope.xml`:",
-								"<library>" + libName + "</library>");
-							errored = true;
-							continue;
-						}
-					} else {
-						File importedFile = new File(Scope.workingDir, fileName);
-						modules.importManager.add(importedFile);
-					}
+					modules.importManager.addRaw(fileName);
+				} else {
+					Utils.error("Expected string literal after `import`.",
+						"Import statments look like this:",
+						"import \"stdlib:Core\";");
+					errored = true;
 				}
 			}
 		}
