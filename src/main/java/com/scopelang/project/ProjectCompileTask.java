@@ -3,6 +3,7 @@ package com.scopelang.project;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.Path;
 
 import com.scopelang.Utils;
 
@@ -15,6 +16,17 @@ public class ProjectCompileTask {
 
 	public ProjectCompileTask(ScopeXml xml) {
 		this.xml = xml;
+	}
+
+	public Path pathRelativeToWorkingDir(Path path) {
+		Path base = workingDir.toPath();
+
+		// Make both paths the same type
+		if (path.isAbsolute()) {
+			base = base.toAbsolutePath();
+		}
+
+		return base.relativize(path);
 	}
 
 	public void run() {
@@ -35,7 +47,7 @@ public class ProjectCompileTask {
 		}
 
 		// Get libraries from web
-		xml.solveLibraries();
+		xml.solveLibraries(this);
 
 		// Compile main file
 		// -> compiles libraries recursively

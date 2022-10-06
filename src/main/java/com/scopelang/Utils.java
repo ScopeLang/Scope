@@ -2,7 +2,6 @@ package com.scopelang;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Path;
 import java.util.*;
 import java.util.stream.Stream;
 
@@ -58,30 +57,6 @@ public final class Utils {
 			}
 			Utils.forceExit();
 			return null;
-		}
-	}
-
-	public static Path pathRelativeToWorkingDir(Path path) {
-		Path base = Scope.workingDir.toPath();
-
-		// Make both paths the same type
-		if (path.isAbsolute()) {
-			base = base.toAbsolutePath();
-		}
-
-		return base.relativize(path);
-	}
-
-	public static File convertUncachedLibToCached(File file) {
-		if (file.getPath().startsWith(".lib/")) {
-			// If we are in the .lib folder, just add .scopelib
-			String baseName = FilenameUtils.removeExtension(file.getPath());
-			return new File(Scope.workingDir, baseName + ".scopelib");
-		} else {
-			// Otherwise, get it from the cache folder
-			String relative = pathRelativeToWorkingDir(file.toPath()).toString();
-			String baseName = FilenameUtils.removeExtension(relative);
-			return new File(Scope.cacheDir, baseName + ".scopelib");
 		}
 	}
 
