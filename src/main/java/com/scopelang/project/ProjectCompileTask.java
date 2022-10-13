@@ -5,6 +5,8 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
+import org.apache.commons.io.FilenameUtils;
+
 import com.scopelang.Utils;
 
 public class ProjectCompileTask {
@@ -14,8 +16,9 @@ public class ProjectCompileTask {
 	public File cacheDir = null;
 	public File libDir = null;
 
-	public ProjectCompileTask(ScopeXml xml) {
+	public ProjectCompileTask(File root, ScopeXml xml) {
 		this.xml = xml;
+		workingDir = root;
 	}
 
 	public Path pathRelativeToWorkingDir(Path path) {
@@ -29,7 +32,7 @@ public class ProjectCompileTask {
 		return base.relativize(path);
 	}
 
-	public void run() {
+	public File run() {
 		// Create .cache and .lib folder
 		if (xml.mode.equals("project")) {
 			cacheDir = new File(workingDir, ".cache");
@@ -42,14 +45,35 @@ public class ProjectCompileTask {
 				if (!Utils.disableLog) {
 					e.printStackTrace();
 				}
-				return;
+				Utils.forceExit();
 			}
 		}
 
 		// Get libraries from web
 		xml.solveLibraries(this);
 
-		// Compile main file
-		// -> compiles libraries recursively
+		// Compile main file to FASM
+		File main = pathRelativeToWorkingDir(xml.mainFile.toPath()).toFile();
+		CompileTask task = new CompileTask(workingDir, main, CompileTask.Mode.MAIN);
+		task.run(xml);
+
+		// Remove old exe
+		File exe = new File(FilenameUtils.removeExtension(main.getPath()) + ".out");
+		exe.delete();
+
+		// Convert FASM to executable
+		String exeName = exe.getAbsolutePath();
+		Utils.log("Compiling executable to `" + exeName + "`.");
+		Utils.runCmdAndWait("fasm", task.output.getAbsolutePath(), exeName);
+		Utils.runCmdAndWait("chmod", "+x", exeName);
+
+		// Error is FASM failed
+		if (!exe.exists()) {
+			Utils.error("FASM could not compile the assembly output!",
+				"Use the `-f` option for details.");
+			Utils.forceExit();
+		}
+
+		return exe;
 	}
 }

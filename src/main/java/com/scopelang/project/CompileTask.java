@@ -30,16 +30,7 @@ public class CompileTask {
 		this.root = root;
 		this.source = pathRelativeToRoot(source.toPath()).toFile();
 		this.mode = mode;
-
-		if (mode == Mode.LIBRARY) {
-			String name = FilenameUtils.removeExtension(source.getPath());
-			output = new File(root, name + ".scopelib");
-		} else {
-			String ext = mode == Mode.MAIN ? ".scopeasm" : ".scopelib";
-
-			String name = FilenameUtils.removeExtension(source.getPath());
-			output = new File(new File(root, ".cache"), name + ext);
-		}
+		output = convertSourceToCompiled(root, source, mode);
 	}
 
 	public Path pathRelativeToRoot(Path path) {
@@ -56,7 +47,7 @@ public class CompileTask {
 	public void run(ScopeXml xml) {
 		File file = new File(root, source.getPath());
 
-		Modules modules = new Modules();
+		Modules modules = new Modules(this);
 		var errorHandler = new ErrorHandler(file);
 
 		// Preprocess
@@ -104,5 +95,17 @@ public class CompileTask {
 		// Log
 		Utils.log("Generated and cached `" +
 			pathRelativeToRoot(output.toPath()).toString() + "`.");
+	}
+
+	public static File convertSourceToCompiled(File root, File source, Mode mode) {
+		if (mode == Mode.LIBRARY) {
+			String name = FilenameUtils.removeExtension(source.getPath());
+			return new File(root, name + ".scopelib");
+		} else {
+			String ext = mode == Mode.MAIN ? ".scopeasm" : ".scopelib";
+
+			String name = FilenameUtils.removeExtension(source.getPath());
+			return new File(new File(root, ".cache"), name + ext);
+		}
 	}
 }

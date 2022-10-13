@@ -2,8 +2,6 @@ package com.scopelang.error;
 
 import java.io.File;
 
-import com.scopelang.Utils;
-
 public class ErrorLoc {
 	public String file;
 	public int line;
@@ -16,7 +14,7 @@ public class ErrorLoc {
 	}
 
 	public ErrorLoc(File file, int line, int character) {
-		this.file = Utils.pathRelativeToWorkingDir(file.toPath()).toString();
+		this.file = file.getPath();
 		this.line = line;
 		this.character = character;
 	}
