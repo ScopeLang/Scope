@@ -58,7 +58,7 @@ public class ProjectCompileTask {
 		task.run(xml);
 
 		// Remove old exe
-		File exe = new File(FilenameUtils.removeExtension(main.getPath()) + ".out");
+		File exe = new File(workingDir, FilenameUtils.removeExtension(main.getPath()) + ".out");
 		exe.delete();
 
 		// Convert FASM to executable

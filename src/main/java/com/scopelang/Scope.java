@@ -109,7 +109,12 @@ public final class Scope {
 					task.run();
 					break;
 				case "run":
-					task.run();
+					File exe = task.run();
+					int exitCode = Utils.runCmdAndWait(true, exe.getAbsolutePath());
+					if (exitCode != 0) {
+						Utils.error("Compiled program exited with non-zero exit code: " + exitCode,
+							"A non-zero exit code usually signifies an error.");
+					}
 					break;
 				case "test":
 					Utils.error("TODO");

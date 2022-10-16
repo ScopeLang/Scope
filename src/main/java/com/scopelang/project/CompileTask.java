@@ -26,9 +26,17 @@ public class CompileTask {
 
 	public File output;
 
+	/**
+	 * @param root
+	 *            The root directory.
+	 * @param source
+	 *            The source file relative to the root.
+	 * @param mode
+	 *            The compile mode.
+	 */
 	public CompileTask(File root, File source, Mode mode) {
 		this.root = root;
-		this.source = pathRelativeToRoot(source.toPath()).toFile();
+		this.source = source;
 		this.mode = mode;
 		output = convertSourceToCompiled(root, source, mode);
 	}
