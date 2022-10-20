@@ -10,6 +10,7 @@ import org.apache.commons.io.FilenameUtils;
 import com.scopelang.*;
 import com.scopelang.error.ErrorHandler;
 import com.scopelang.fasm.FasmGenerator;
+import com.scopelang.metadata.FasmAnalyzer;
 import com.scopelang.metadata.ImportManager;
 import com.scopelang.preprocess.*;
 
@@ -81,6 +82,8 @@ public class CompileTask {
 		CommonTokenStream stream = new CommonTokenStream(modules.lexer);
 		modules.tokenProcessor = new TokenProcessor(file, stream, modules);
 
+		analyzeImports(modules.importManager.getAll(), modules, xml);
+
 		// Parse
 		modules.parser = new ScopeParser(stream);
 		modules.parser.removeErrorListener(ConsoleErrorListener.INSTANCE);
@@ -103,6 +106,28 @@ public class CompileTask {
 		// Log
 		Utils.log("Generated and cached `" +
 			pathRelativeToRoot(output.toPath()).toString() + "`.");
+	}
+
+	private void analyzeImports(File[] imports, Modules modules, ScopeXml xml) {
+		for (var file : modules.importManager.getAll()) {
+			var asm = convertSourceToCompiled(root, file, Mode.IMPORT);
+
+			if (!asm.exists()) {
+				Utils.log(asm.getName() + " doesn't exist. Generating.");
+				var task = new CompileTask(root, file, Mode.IMPORT);
+				task.run(xml);
+			}
+
+			// Merge everything
+
+			var analyzer = new FasmAnalyzer(root, asm);
+
+			for (var func : analyzer.functions.entrySet()) {
+				modules.funcGatherer.addLibFunc(func.getKey(), func.getValue());
+			}
+
+			// TODO Deal with recursive import
+		}
 	}
 
 	public static File convertSourceToCompiled(File root, File source, Mode mode) {

@@ -25,7 +25,7 @@ public class FasmAnalyzer {
 	public String type = null;
 	public String hash = null;
 	public String source = null;
-	public HashMap<String, FuncInfo> functions = new HashMap<>();
+	public HashMap<Identifier, FuncInfo> functions = new HashMap<>();
 
 	public FasmAnalyzer(File root, File file) {
 		this.root = root;
@@ -98,9 +98,9 @@ public class FasmAnalyzer {
 			}
 
 			// Add function to gatherer
-			var funcInfo = new FuncInfo(ScopeType.parseFromString(data[1]), 
+			var funcInfo = new FuncInfo(ScopeType.parseFromString(data[1]),
 				args.toArray(ScopeType[]::new));
-			functions.put(data[0], funcInfo);
+			functions.put(new Identifier(data[0]), funcInfo);
 		}
 	}
 }

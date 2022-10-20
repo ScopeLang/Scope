@@ -30,6 +30,7 @@ public class ImportManager {
 				Utils.forceExit();
 				return;
 			}
+			importedFiles.add(new File(real));
 		}
 	}
 
