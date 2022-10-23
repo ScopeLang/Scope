@@ -14,7 +14,6 @@ import org.apache.commons.io.IOUtils;
 import org.w3c.dom.Document;
 import org.w3c.dom.NodeList;
 
-import com.scopelang.Scope;
 import com.scopelang.Utils;
 
 import net.lingala.zip4j.ZipFile;
@@ -91,7 +90,7 @@ public class ScopeXml {
 				}
 
 				// Validate <main>
-				mainFile = new File(Scope.workingDir, mainNode.item(0).getTextContent());
+				mainFile = new File(file.getParent(), mainNode.item(0).getTextContent());
 				if (!mainFile.exists()) {
 					Utils.error("File referenced in `main` doesn't exist.",
 						"Try making a file named `" + mainFile.getName() + "`.");
@@ -113,7 +112,7 @@ public class ScopeXml {
 				// <test>
 				NodeList testNode = document.getElementsByTagName("test");
 				if (testNode.getLength() >= 1) {
-					testFile = new File(Scope.workingDir, testNode.item(0).getTextContent());
+					testFile = new File(file.getParent(), testNode.item(0).getTextContent());
 
 					// Don't show a warning if test doesn't exist
 					// until `scope test` is ran.
@@ -163,13 +162,13 @@ public class ScopeXml {
 		}
 	}
 
-	public void solveLibraries() {
+	public void solveLibraries(ProjectCompileTask task) {
 		boolean errored = false;
 
 		for (var lib : libraries) {
 			// This stuff is for remote/github only
 			String pathMd5 = DigestUtils.md5Hex(lib.path.getBytes());
-			File expectedFolder = new File(Scope.libDir, pathMd5);
+			File expectedFolder = new File(task.libDir, pathMd5);
 
 			// Get the real URL of library if it is a github one
 			if (lib.type.equals("github") && !expectedFolder.exists()) {
@@ -209,7 +208,7 @@ public class ScopeXml {
 			if (lib.type.equals("remote") && !expectedFolder.exists()) {
 				// If not installed, download it
 				if (!expectedFolder.exists()) {
-					if (!downloadLib(lib.path, expectedFolder)) {
+					if (!downloadLib(task.workingDir, lib.path, expectedFolder)) {
 						errored = true;
 						continue;
 					}
@@ -218,11 +217,12 @@ public class ScopeXml {
 
 			// Set path correctly if remote
 			if (lib.type.equals("remote") || lib.type.equals("github")) {
-				lib.path = Utils.pathRelativeToWorkingDir(expectedFolder.toPath()).toString();
+				lib.path = task.pathRelativeToWorkingDir(expectedFolder.toPath())
+					.toString();
 			}
 
 			// Get the name
-			File f = new File(Scope.workingDir, lib.path + File.separator + "scope.xml");
+			File f = new File(task.workingDir, lib.path + File.separator + "scope.xml");
 			if (!f.exists()) {
 				Utils.error("`" + lib.path + "` is an invalid library.",
 					"No `scope.xml` file was found.");
@@ -238,11 +238,11 @@ public class ScopeXml {
 		}
 	}
 
-	private static boolean downloadLib(String path, File expectedFolder) {
+	private static boolean downloadLib(File cacheDir, String path, File expectedFolder) {
 		Utils.log("Downloading `" + path + "`...");
 
 		// Download
-		File zip = new File(Scope.cacheDir, "lib.zip");
+		File zip = new File(cacheDir, "lib.zip");
 		try {
 			FileUtils.copyURLToFile(new URL(path), zip);
 		} catch (Exception e) {

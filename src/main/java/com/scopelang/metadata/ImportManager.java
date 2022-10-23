@@ -3,12 +3,10 @@ package com.scopelang.metadata;
 import java.io.File;
 import java.util.ArrayList;
 
-import org.apache.commons.io.FilenameUtils;
-
-import com.scopelang.Identifier;
 import com.scopelang.Modules;
-import com.scopelang.Scope;
 import com.scopelang.Utils;
+import com.scopelang.project.CompileTask;
+import com.scopelang.project.ScopeXml;
 
 public class ImportManager {
 	private Modules modules;
@@ -19,103 +17,60 @@ public class ImportManager {
 		this.modules = modules;
 	}
 
-	public void reset() {
-		importedFiles.clear();
-	}
+	public void addRaw(String name, ScopeXml xml) {
+		String real = name + ".scope";
 
-	private Modules cache(File file, File cached) {
-		try {
-			return Scope.genAsm(file, cached, true);
-		} catch (Exception e) {
-			String relativePath = Utils.pathRelativeToWorkingDir(file.toPath()).toString();
-			Utils.error("Could not generate imported file `" + relativePath + "`.");
-			e.printStackTrace();
-			Utils.forceExit();
-			return null;
-		}
-	}
+		if (real.contains(":")) {
+			String libName = real.substring(0, real.indexOf(":"));
+			String fileName = real.substring(real.indexOf(":") + 1, real.length());
+			var libInfo = xml.libraryInfoByName(libName);
 
-	// Adds an external library
-	public void addLib(String libName, File libRoot, File file) {
-		// Skip if library was already added
-		if (importedFiles.contains(file)) {
-			return;
-		}
-
-		// Get the .scopelib file
-		String path = FilenameUtils.removeExtension(file.toPath().toString()) + ".scopelib";
-		File libFile = new File(Scope.workingDir, path);
-
-		// See if it exists
-		if (!libFile.exists()) {
-			Utils.error("The `" + libName + "` library doesn't seem to be compiled.",
-				"Build `" + libName + "` using `scope build` before using it.");
-			Utils.forceExit();
-			return;
-		}
-
-		// Analyze it
-		FasmAnalyzer analyzer = new FasmAnalyzer(libRoot, libFile);
-
-		for (var data : analyzer.imports) {
-			addLib(libName, libRoot, data.file);
-		}
-
-		// Add library functions
-		for (var entry : analyzer.functions.entrySet()) {
-			modules.funcGatherer.addLibFunc(new Identifier(entry.getKey()),
-				entry.getValue());
-		}
-
-		// Add it to the list
-		importedFiles.add(file);
-	}
-
-	// Adds a project file
-	public void add(File file) {
-		// Skip if the file was already added
-		if (importedFiles.contains(file)) {
-			return;
-		}
-
-		// Check if a compiled version exists
-		File cached = Utils.convertUncachedLibToCached(file);
-		if (!cached.exists()) {
-			var o = cache(file, cached);
-			merge(o);
-		} else {
-			// If so, check the md5 and see if the file needs to be updated
-			FasmAnalyzer analyzer = new FasmAnalyzer(Scope.workingDir, cached);
-			String hash = Utils.hashOf(new File(Scope.workingDir, analyzer.source));
-			if (!hash.equals(analyzer.hash)) {
-				// If the hashes do not match, recompile
-				Utils.log("Changes detected in `" + analyzer.source + "`. Recompiling.");
-				var o = cache(file, cached);
-				merge(o);
-			} else {
-				// Else, read the metadata and import manually
-				for (var data : analyzer.imports) {
-					add(data.file);
-				}
-
-				// Add library functions
-				for (var entry : analyzer.functions.entrySet()) {
-					modules.funcGatherer.addLibFunc(
-						new Identifier(entry.getKey()), entry.getValue());
+			if (libInfo == null) {
+				if (libName.equals("stdlib")) {
+					Utils.error("`stdlib` isn't added to the project.",
+						"Try adding this to your `scope.xml`",
+						"<library type=\"github\">ScopeLang/stdlib</library>");
+					Utils.forceExit();
+				} else {
+					Utils.error("Library with name `" + libName + "` isn't added to the project.",
+						"Try adding one of the following to your `scope.xml`",
+						"<library type=\"github\">AuthorNameHere/" + libName + "</library>",
+						"<library type=\"remote\">https://example.com/link-to/" + libName + "</library>",
+						"<library>path/to/" + libName + "</library>");
+					Utils.forceExit();
 				}
 			}
+
+			File file = new File(new File(modules.task.root, libInfo.path), fileName);
+			if (!file.exists()) {
+				Utils.error("File `" + real + "` does not exist in `" + libName + "`.",
+					"Are you getting the file name right?");
+				Utils.forceExit();
+				return;
+			}
+			importedFiles.add(new File(libInfo.path, fileName));
+		} else {
+			File file = new File(modules.task.root, real);
+			if (!file.exists()) {
+				Utils.error("File `" + real + "` does not exist.",
+					"`" + name + "` is imported. Imports are always relative to `scope.xml`");
+				Utils.forceExit();
+				return;
+			}
+			importedFiles.add(new File(real));
 		}
-
-		// Add it to the list
-		importedFiles.add(file);
 	}
 
-	private void merge(Modules other) {
-		modules.funcGatherer.merge(other.funcGatherer);
+	public ArrayList<File> getAll() {
+		return new ArrayList<>(importedFiles);
 	}
 
-	public File[] getAll() {
-		return importedFiles.toArray(new File[0]);
+	public ArrayList<File> getAllAsm() {
+		ArrayList<File> files = new ArrayList<>();
+		for (var file : importedFiles) {
+			files.add(CompileTask.convertSourceToCompiled(
+				modules.task.root, file, CompileTask.Mode.IMPORT));
+		}
+		return files;
 	}
 }
-// quinn was here

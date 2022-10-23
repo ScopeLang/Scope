@@ -11,6 +11,8 @@ import org.apache.commons.io.IOUtils;
 import com.scopelang.*;
 import com.scopelang.ScopeParser.*;
 import com.scopelang.error.ErrorLoc;
+import com.scopelang.project.CompileTask;
+import com.scopelang.project.CompileTask.Mode;
 
 public class FasmGenerator extends ScopeBaseListener {
 	private File sourceFile;
@@ -31,7 +33,6 @@ public class FasmGenerator extends ScopeBaseListener {
 	private boolean returnFound = false;
 
 	public FasmGenerator(File sourceFile, File fileName, Modules modules, boolean libraryMode) {
-
 		this.sourceFile = sourceFile;
 		this.modules = modules;
 		this.libraryMode = libraryMode;
@@ -48,7 +49,7 @@ public class FasmGenerator extends ScopeBaseListener {
 
 	public void insertHeader() {
 		String date = DateTimeFormatter.ofPattern("yyyy/MM/dd hh:mm:ss a").format(LocalDateTime.now());
-		String filePath = Utils.pathRelativeToWorkingDir(sourceFile.toPath()).toString();
+		String filePath = modules.task.pathRelativeToRoot(sourceFile.toPath()).toString();
 
 		write("; Generated at " + date);
 		write("");
@@ -126,14 +127,18 @@ public class FasmGenerator extends ScopeBaseListener {
 	}
 
 	private void writeImportMeta() {
-		for (var file : modules.importManager.getAll()) {
-			write(";@IMPORT," + Utils.hashOf(file) + "," + Utils.pathRelativeToWorkingDir(file.toPath()).toString());
+		for (var file : modules.globalImports) {
+			var hash = Utils.hashOf(new File(modules.task.root, file.getPath()));
+			write(";@IMPORT," + hash + "," + file.getPath());
 		}
 	}
 
 	private void writeImports() {
-		for (var file : modules.importManager.getAll()) {
-			String text = Utils.readFile(Utils.convertUncachedLibToCached(file));
+		for (var source : modules.globalImports) {
+			var file = CompileTask.convertSourceToCompiled(
+				modules.task.root, source, Mode.IMPORT);
+
+			String text = Utils.readFile(file);
 
 			// Append to constants
 			stringAppend += text.substring(text.indexOf(";@SEG_READ") + 10, text.length()).trim() + "\n";

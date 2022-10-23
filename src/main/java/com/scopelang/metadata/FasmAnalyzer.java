@@ -3,6 +3,7 @@ package com.scopelang.metadata;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Objects;
 
 import com.scopelang.*;
 import com.scopelang.preprocess.*;
@@ -16,20 +17,33 @@ public class FasmAnalyzer {
 			this.file = file;
 			this.md5 = md5;
 		}
+
+		@Override
+		public boolean equals(Object obj) {
+			return file.equals(((ImportMeta) obj).file)
+				&& md5.equals(((ImportMeta) obj).md5);
+		}
+
+		@Override
+		public int hashCode() {
+			return Objects.hash(file, md5);
+		}
 	}
 
 	private File root;
+	private File sourceFile;
 	private String text;
 
 	public ArrayList<ImportMeta> imports = new ArrayList<>();
 	public String type = null;
 	public String hash = null;
 	public String source = null;
-	public HashMap<String, FuncInfo> functions = new HashMap<>();
+	public HashMap<Identifier, FuncInfo> functions = new HashMap<>();
 
-	public FasmAnalyzer(File root, File file) {
+	public FasmAnalyzer(File root, File relative) {
 		this.root = root;
-		text = Utils.readFile(file);
+		sourceFile = relative;
+		text = Utils.readFile(new File(root, relative.getPath()));
 
 		analyze();
 	}
@@ -76,7 +90,14 @@ public class FasmAnalyzer {
 			j = text.indexOf("\n", i);
 
 			// Get the file
-			File file = new File(root, text.substring(i, j));
+			var path = text.substring(i, j);
+			File file;
+			if (sourceFile.toPath().startsWith(".lib")) {
+				var libPath = sourceFile.toPath().subpath(0, 2);
+				file = new File(new File(root, libPath.toString()), path);
+			} else {
+				file = new File(root, path);
+			}
 
 			// Add
 			imports.add(new ImportMeta(file, md5));
@@ -98,9 +119,9 @@ public class FasmAnalyzer {
 			}
 
 			// Add function to gatherer
-			var funcInfo = new FuncInfo(ScopeType.parseFromString(data[1]), 
+			var funcInfo = new FuncInfo(ScopeType.parseFromString(data[1]),
 				args.toArray(ScopeType[]::new));
-			functions.put(data[0], funcInfo);
+			functions.put(new Identifier(data[0]), funcInfo);
 		}
 	}
 }
