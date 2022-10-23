@@ -111,9 +111,26 @@ public class CompileTask {
 	private void analyzeImports(ArrayList<File> imports, Modules modules, ScopeXml xml) {
 		for (var file : imports) {
 			var asm = convertSourceToCompiled(root, file, Mode.IMPORT);
+			boolean regen = false;
+
+			FasmAnalyzer analyzer = null;
 
 			if (!asm.exists()) {
-				Utils.log(asm.getName() + " doesn't exist. Generating.");
+				Utils.log("`" + asm.getName() + "` doesn't exist. Generating.");
+				regen = true;
+			} else {
+				// Check for changes
+				var md5 = Utils.hashOf(new File(root, file.getPath()));
+				analyzer = new FasmAnalyzer(root, asm);
+				if (!md5.equals(analyzer.hash)) {
+					// Regen if so
+					Utils.log("Changed detected in `" + asm.getName() + "`. Re-generating.");
+					analyzer = null;
+					regen = true;
+				}
+			}
+
+			if (regen) {
 				var relative = pathRelativeToRoot(file.toPath());
 				var task = new CompileTask(root, relative.toFile(), Mode.IMPORT);
 				task.run(xml);
@@ -121,7 +138,9 @@ public class CompileTask {
 
 			// Merge everything
 
-			var analyzer = new FasmAnalyzer(root, asm);
+			if (analyzer == null) {
+				analyzer = new FasmAnalyzer(root, asm);
+			}
 
 			for (var func : analyzer.functions.entrySet()) {
 				modules.funcGatherer.addLibFunc(func.getKey(), func.getValue());
