@@ -9,6 +9,7 @@ import com.scopelang.Modules;
 import com.scopelang.ScopeLexer;
 import com.scopelang.Utils;
 import com.scopelang.error.ErrorLoc;
+import com.scopelang.project.ScopeXml;
 
 public class TokenProcessor {
 	private File sourceFile;
@@ -18,14 +19,14 @@ public class TokenProcessor {
 	public boolean errored = false;
 	public HashMap<String, Integer> extactedStrings;
 
-	public TokenProcessor(File sourceFile, CommonTokenStream tokenStream, Modules modules) {
+	public TokenProcessor(File sourceFile, CommonTokenStream tokenStream, ScopeXml xml, Modules modules) {
 		this.sourceFile = sourceFile;
 		stream = tokenStream;
 		this.modules = modules;
 
 		extactedStrings = new HashMap<String, Integer>();
 
-		tokenProcess();
+		tokenProcess(xml);
 
 		if (errored) {
 			Utils.forceExit();
@@ -36,7 +37,7 @@ public class TokenProcessor {
 		return new ErrorLoc(sourceFile, token.getLine(), token.getCharPositionInLine() + 1);
 	}
 
-	private void tokenProcess() {
+	private void tokenProcess(ScopeXml xml) {
 		stream.fill();
 
 		boolean inImport = false;
@@ -75,7 +76,7 @@ public class TokenProcessor {
 					}
 
 					// Add the file to libraries
-					modules.importManager.addRaw(fileName);
+					modules.importManager.addRaw(fileName, xml);
 				} else {
 					Utils.error("Expected string literal after `import`.",
 						"Import statments look like this:",

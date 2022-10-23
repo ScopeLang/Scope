@@ -22,7 +22,7 @@ public class ProjectCompileTask {
 	}
 
 	public Path pathRelativeToWorkingDir(Path path) {
-		if (path.getParent() == null) {
+		if (!path.startsWith(workingDir.toPath())) {
 			return path;
 		}
 

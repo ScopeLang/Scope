@@ -43,7 +43,7 @@ public class CompileTask {
 	}
 
 	public Path pathRelativeToRoot(Path path) {
-		if (path.getParent() == null) {
+		if (!path.startsWith(root.toPath())) {
 			return path;
 		}
 
@@ -78,7 +78,7 @@ public class CompileTask {
 
 		// Token process
 		CommonTokenStream stream = new CommonTokenStream(modules.lexer);
-		modules.tokenProcessor = new TokenProcessor(file, stream, modules);
+		modules.tokenProcessor = new TokenProcessor(file, stream, xml, modules);
 
 		var allImports = modules.importManager.getAll();
 		modules.globalImports.addAll(allImports);
@@ -111,6 +111,7 @@ public class CompileTask {
 	private void analyzeImports(ArrayList<File> imports, Modules modules, ScopeXml xml) {
 		for (var file : imports) {
 			var asm = convertSourceToCompiled(root, file, Mode.IMPORT);
+			var relativeAsm = pathRelativeToRoot(asm.toPath()).toFile();
 			boolean regen = false;
 
 			FasmAnalyzer analyzer = null;
@@ -121,7 +122,7 @@ public class CompileTask {
 			} else {
 				// Check for changes
 				var md5 = Utils.hashOf(new File(root, file.getPath()));
-				analyzer = new FasmAnalyzer(root, asm);
+				analyzer = new FasmAnalyzer(root, relativeAsm);
 				if (!md5.equals(analyzer.hash)) {
 					// Regen if so
 					Utils.log("Changed detected in `" + asm.getName() + "`. Re-generating.");
@@ -139,7 +140,7 @@ public class CompileTask {
 			// Merge everything
 
 			if (analyzer == null) {
-				analyzer = new FasmAnalyzer(root, asm);
+				analyzer = new FasmAnalyzer(root, relativeAsm);
 			}
 
 			for (var func : analyzer.functions.entrySet()) {
@@ -149,6 +150,7 @@ public class CompileTask {
 			var newImports = new ArrayList<File>();
 			for (var importMeta : analyzer.imports) {
 				var relative = pathRelativeToRoot(importMeta.file.toPath()).toFile();
+
 				if (modules.globalImports.contains(relative)) {
 					continue;
 				}
@@ -161,6 +163,10 @@ public class CompileTask {
 	}
 
 	public static File convertSourceToCompiled(File root, File source, Mode mode) {
+		if (mode == Mode.IMPORT && source.toPath().startsWith(".lib")) {
+			mode = Mode.LIBRARY;
+		}
+
 		if (mode == Mode.LIBRARY) {
 			String name = FilenameUtils.removeExtension(source.getPath());
 			return new File(root, name + ".scopelib");
