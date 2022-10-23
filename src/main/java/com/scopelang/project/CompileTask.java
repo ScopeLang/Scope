@@ -1,6 +1,7 @@
 package com.scopelang.project;
 
 import java.nio.file.Path;
+import java.util.ArrayList;
 
 import org.antlr.v4.runtime.*;
 import org.antlr.v4.runtime.tree.ParseTree;
@@ -10,8 +11,7 @@ import org.apache.commons.io.FilenameUtils;
 import com.scopelang.*;
 import com.scopelang.error.ErrorHandler;
 import com.scopelang.fasm.FasmGenerator;
-import com.scopelang.metadata.FasmAnalyzer;
-import com.scopelang.metadata.ImportManager;
+import com.scopelang.metadata.*;
 import com.scopelang.preprocess.*;
 
 import java.io.File;
@@ -43,13 +43,11 @@ public class CompileTask {
 	}
 
 	public Path pathRelativeToRoot(Path path) {
-		Path base = root.toPath();
-
-		// Make both paths the same type
-		if (path.isAbsolute()) {
-			base = base.toAbsolutePath();
+		if (path.getParent() == null) {
+			return path;
 		}
 
+		Path base = root.toPath();
 		return base.relativize(path);
 	}
 
@@ -82,7 +80,9 @@ public class CompileTask {
 		CommonTokenStream stream = new CommonTokenStream(modules.lexer);
 		modules.tokenProcessor = new TokenProcessor(file, stream, modules);
 
-		analyzeImports(modules.importManager.getAll(), modules, xml);
+		var allImports = modules.importManager.getAll();
+		modules.globalImports.addAll(allImports);
+		analyzeImports(allImports, modules, xml);
 
 		// Parse
 		modules.parser = new ScopeParser(stream);
@@ -108,13 +108,14 @@ public class CompileTask {
 			pathRelativeToRoot(output.toPath()).toString() + "`.");
 	}
 
-	private void analyzeImports(File[] imports, Modules modules, ScopeXml xml) {
-		for (var file : modules.importManager.getAll()) {
+	private void analyzeImports(ArrayList<File> imports, Modules modules, ScopeXml xml) {
+		for (var file : imports) {
 			var asm = convertSourceToCompiled(root, file, Mode.IMPORT);
 
 			if (!asm.exists()) {
 				Utils.log(asm.getName() + " doesn't exist. Generating.");
-				var task = new CompileTask(root, file, Mode.IMPORT);
+				var relative = pathRelativeToRoot(file.toPath());
+				var task = new CompileTask(root, relative.toFile(), Mode.IMPORT);
 				task.run(xml);
 			}
 
@@ -126,7 +127,17 @@ public class CompileTask {
 				modules.funcGatherer.addLibFunc(func.getKey(), func.getValue());
 			}
 
-			// TODO Deal with recursive import
+			var newImports = new ArrayList<File>();
+			for (var importMeta : analyzer.imports) {
+				var relative = pathRelativeToRoot(importMeta.file.toPath()).toFile();
+				if (modules.globalImports.contains(relative)) {
+					continue;
+				}
+
+				newImports.add(relative);
+				modules.globalImports.add(relative);
+			}
+			analyzeImports(newImports, modules, xml);
 		}
 	}
 

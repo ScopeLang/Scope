@@ -3,6 +3,7 @@ package com.scopelang.metadata;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Objects;
 
 import com.scopelang.*;
 import com.scopelang.preprocess.*;
@@ -15,6 +16,17 @@ public class FasmAnalyzer {
 		public ImportMeta(File file, String md5) {
 			this.file = file;
 			this.md5 = md5;
+		}
+
+		@Override
+		public boolean equals(Object obj) {
+			return file.equals(((ImportMeta) obj).file)
+				&& md5.equals(((ImportMeta) obj).md5);
+		}
+
+		@Override
+		public int hashCode() {
+			return Objects.hash(file, md5);
 		}
 	}
 

@@ -34,16 +34,16 @@ public class ImportManager {
 		}
 	}
 
-	public File[] getAll() {
-		return importedFiles.toArray(new File[0]);
+	public ArrayList<File> getAll() {
+		return new ArrayList<>(importedFiles);
 	}
 
-	public File[] getAllAsm() {
+	public ArrayList<File> getAllAsm() {
 		ArrayList<File> files = new ArrayList<>();
 		for (var file : importedFiles) {
 			files.add(CompileTask.convertSourceToCompiled(
 				modules.task.root, file, CompileTask.Mode.IMPORT));
 		}
-		return files.toArray(new File[0]);
+		return files;
 	}
 }

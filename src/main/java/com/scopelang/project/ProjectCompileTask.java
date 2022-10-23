@@ -22,13 +22,11 @@ public class ProjectCompileTask {
 	}
 
 	public Path pathRelativeToWorkingDir(Path path) {
-		Path base = workingDir.toPath();
-
-		// Make both paths the same type
-		if (path.isAbsolute()) {
-			base = base.toAbsolutePath();
+		if (path.getParent() == null) {
+			return path;
 		}
 
+		Path base = workingDir.toPath();
 		return base.relativize(path);
 	}
 

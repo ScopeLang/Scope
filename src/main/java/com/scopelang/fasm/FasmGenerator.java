@@ -11,6 +11,8 @@ import org.apache.commons.io.IOUtils;
 import com.scopelang.*;
 import com.scopelang.ScopeParser.*;
 import com.scopelang.error.ErrorLoc;
+import com.scopelang.project.CompileTask;
+import com.scopelang.project.CompileTask.Mode;
 
 public class FasmGenerator extends ScopeBaseListener {
 	private File sourceFile;
@@ -47,7 +49,7 @@ public class FasmGenerator extends ScopeBaseListener {
 
 	public void insertHeader() {
 		String date = DateTimeFormatter.ofPattern("yyyy/MM/dd hh:mm:ss a").format(LocalDateTime.now());
-		String filePath = sourceFile.getPath();
+		String filePath = modules.task.pathRelativeToRoot(sourceFile.toPath()).toString();
 
 		write("; Generated at " + date);
 		write("");
@@ -125,13 +127,17 @@ public class FasmGenerator extends ScopeBaseListener {
 	}
 
 	private void writeImportMeta() {
-		for (var file : modules.importManager.getAll()) {
-			write(";@IMPORT," + Utils.hashOf(file) + "," + file.getPath());
+		for (var file : modules.globalImports) {
+			var hash = Utils.hashOf(new File(modules.task.root, file.getPath()));
+			write(";@IMPORT," + hash + "," + file.getPath());
 		}
 	}
 
 	private void writeImports() {
-		for (var file : modules.importManager.getAllAsm()) {
+		for (var source : modules.globalImports) {
+			var file = CompileTask.convertSourceToCompiled(
+				modules.task.root, source, Mode.IMPORT);
+
 			String text = Utils.readFile(file);
 
 			// Append to constants
