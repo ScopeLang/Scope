@@ -5,7 +5,7 @@ It will be object-oriented programming langauge that compiles into [`FASM`](http
 
 > **Warning**
 >
-> Scope currently only works on Linux. Other platforms are planned.
+> Scope currently only runs on Linux. Use WSL2 for Windows. Other platforms are planned.
 
 ## Building
 
