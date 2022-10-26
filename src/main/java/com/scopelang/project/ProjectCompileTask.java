@@ -12,6 +12,9 @@ import com.scopelang.Utils;
 import com.scopelang.FilePair.RootType;
 import com.scopelang.project.CompileTask.Mode;
 
+import net.lingala.zip4j.ZipFile;
+import net.lingala.zip4j.model.ZipParameters;
+
 public class ProjectCompileTask {
 	public ScopeXml xml;
 
@@ -108,6 +111,59 @@ public class ProjectCompileTask {
 			}
 		} catch (Exception e) {
 			Utils.error("Could not locate source files.",
+				"Use `-f` for more info.");
+			if (!Utils.disableLog) {
+				e.printStackTrace();
+			}
+		}
+
+		// Delete old zip file
+		var zipFile = new File(workingDir, xml.name + ".zip");
+		zipFile.delete();
+
+		// Package into a zip
+		try {
+			// Get all valid files
+			var files = Files.find(workingDir.toPath(), Integer.MAX_VALUE,
+				(path, fileAttr) -> {
+					var n = path.getFileName().toString();
+
+					// Skip non-files
+					if (!fileAttr.isRegularFile()) {
+						return false;
+					}
+
+					// Skip test file
+					if (path.toAbsolutePath().toString().equals(xml.testFile.getAbsolutePath())) {
+						return false;
+					}
+
+					if (n.endsWith(".scope") || n.endsWith(".scopelib")) {
+						return true;
+					}
+
+					if (n.equals("scope.xml") || n.equalsIgnoreCase("LICENSE")) {
+						return true;
+					}
+
+					return false;
+				}).map(i -> i.toFile());
+
+			// Zip it up
+			try (var z = new ZipFile(zipFile)) {
+				// Add each
+				for (var file : files.toArray(File[]::new)) {
+					Path relativePath = workingDir.toPath();
+					relativePath = relativePath.relativize(file.toPath());
+
+					ZipParameters zipParameters = new ZipParameters();
+					zipParameters.setFileNameInZip(relativePath.toString());
+
+					z.addFile(file, zipParameters);
+				}
+			}
+		} catch (Exception e) {
+			Utils.error("Could not package library into a zip.",
 				"Use `-f` for more info.");
 			if (!Utils.disableLog) {
 				e.printStackTrace();

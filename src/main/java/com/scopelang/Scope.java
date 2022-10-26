@@ -82,7 +82,8 @@ public final class Scope {
 							.filter(Files::isRegularFile).forEach(p -> {
 								var f = p.toFile();
 								if (f.getName().endsWith(".scopelib") ||
-									f.getName().endsWith(".scopeasm")) {
+									f.getName().endsWith(".scopeasm") ||
+									f.getName().equals(projXml.name + ".zip")) {
 
 									f.delete();
 								}
