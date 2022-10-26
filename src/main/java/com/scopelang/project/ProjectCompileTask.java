@@ -97,11 +97,6 @@ public class ProjectCompileTask {
 			var sourceFiles = Files.walk(workingDir.toPath())
 				.filter(Files::isRegularFile).map(i -> i.toFile());
 			for (File f : sourceFiles.toArray(File[]::new)) {
-				// Skip test file
-				if (f.equals(xml.testFile)) {
-					continue;
-				}
-
 				if (f.getName().endsWith(".scope")) {
 					File main = pathRelativeToWorkingDir(f.toPath()).toFile();
 					var source = new FilePair(workingDir, main, RootType.NORMAL);
@@ -130,11 +125,6 @@ public class ProjectCompileTask {
 
 					// Skip non-files
 					if (!fileAttr.isRegularFile()) {
-						return false;
-					}
-
-					// Skip test file
-					if (path.toAbsolutePath().toString().equals(xml.testFile.getAbsolutePath())) {
 						return false;
 					}
 

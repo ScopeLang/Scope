@@ -123,9 +123,6 @@ public final class Scope {
 							"A non-zero exit code usually signifies an error.");
 					}
 					break;
-				case "test":
-					Utils.error("TODO");
-					break;
 				default:
 					printHelp(formatter, options);
 					return;
@@ -138,7 +135,6 @@ public final class Scope {
 		System.out.println("\nmodes:");
 		System.out.println(" build   Builds the project.");
 		System.out.println(" run     Builds then runs the project.");
-		System.out.println(" test    Runs the test file for a library.");
 		System.out.println(" clean   Deletes all cache files.");
 	}
 }

@@ -1,6 +1,0 @@
-import "Core";
-
-func void main() {
-	print("This is the test file!\n");
-	printHelloWorld();
-}

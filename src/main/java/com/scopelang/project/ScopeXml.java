@@ -32,7 +32,6 @@ public class ScopeXml {
 	public String mode = null;
 	public File mainFile = null;
 	public String name = null;
-	public File testFile = null;
 	public ArrayList<LibraryInfo> libraries = new ArrayList<>();
 
 	public ScopeXml(File file) {
@@ -108,18 +107,6 @@ public class ScopeXml {
 					throw new Exception();
 				}
 				name = nameNode.item(0).getTextContent();
-
-				// <test>
-				NodeList testNode = document.getElementsByTagName("test");
-				if (testNode.getLength() >= 1) {
-					testFile = new File(file.getParent(), testNode.item(0).getTextContent());
-
-					// Don't show a warning if test doesn't exist
-					// until `scope test` is ran.
-					if (!testFile.exists()) {
-						testFile = null;
-					}
-				}
 
 				break;
 		}
