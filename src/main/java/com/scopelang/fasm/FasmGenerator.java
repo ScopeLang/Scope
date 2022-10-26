@@ -15,7 +15,7 @@ import com.scopelang.project.CompileTask;
 import com.scopelang.project.CompileTask.Mode;
 
 public class FasmGenerator extends ScopeBaseListener {
-	private File sourceFile;
+	private FilePair sourceFile;
 	private PrintWriter writer;
 	private boolean libraryMode;
 
@@ -32,14 +32,14 @@ public class FasmGenerator extends ScopeBaseListener {
 	private boolean isFuncVoid = false;
 	private boolean returnFound = false;
 
-	public FasmGenerator(File sourceFile, File fileName, Modules modules, boolean libraryMode) {
+	public FasmGenerator(FilePair sourceFile, File fileName, Modules modules, boolean libraryMode) {
 		this.sourceFile = sourceFile;
 		this.modules = modules;
 		this.libraryMode = libraryMode;
 
 		try {
 			writer = new PrintWriter(fileName);
-			md5 = Utils.hashOf(sourceFile);
+			md5 = Utils.hashOf(sourceFile.toFile());
 		} catch (IOException e) {
 			Utils.error("Could not generate file.");
 			e.printStackTrace();
@@ -49,7 +49,7 @@ public class FasmGenerator extends ScopeBaseListener {
 
 	public void insertHeader() {
 		String date = DateTimeFormatter.ofPattern("yyyy/MM/dd hh:mm:ss a").format(LocalDateTime.now());
-		String filePath = modules.task.pathRelativeToRoot(sourceFile.toPath()).toString();
+		String filePath = sourceFile.file.getPath();
 
 		write("; Generated at " + date);
 		write("");
@@ -127,16 +127,15 @@ public class FasmGenerator extends ScopeBaseListener {
 	}
 
 	private void writeImportMeta() {
-		for (var file : modules.globalImports) {
-			var hash = Utils.hashOf(new File(modules.task.root, file.getPath()));
-			write(";@IMPORT," + hash + "," + file.getPath());
+		for (var filePair : modules.globalImports) {
+			var hash = Utils.hashOf(filePair.toFile());
+			write(";@IMPORT," + hash + "," + filePair.file.getPath());
 		}
 	}
 
 	private void writeImports() {
 		for (var source : modules.globalImports) {
-			var file = CompileTask.convertSourceToCompiled(
-				modules.task.root, source, Mode.IMPORT);
+			var file = CompileTask.convertSourceToCompiled(source, Mode.IMPORT).toFile();
 
 			String text = Utils.readFile(file);
 
@@ -185,7 +184,8 @@ public class FasmGenerator extends ScopeBaseListener {
 	}
 
 	public ErrorLoc locationOf(Token token) {
-		return new ErrorLoc(sourceFile, token.getLine(), token.getCharPositionInLine() + 1);
+		return new ErrorLoc(sourceFile.toFile(), token.getLine(),
+			token.getCharPositionInLine() + 1);
 	}
 
 	@Override

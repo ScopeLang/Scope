@@ -3,15 +3,14 @@ package com.scopelang.metadata;
 import java.io.File;
 import java.util.ArrayList;
 
-import com.scopelang.Modules;
-import com.scopelang.Utils;
-import com.scopelang.project.CompileTask;
+import com.scopelang.*;
+import com.scopelang.FilePair.RootType;
 import com.scopelang.project.ScopeXml;
 
 public class ImportManager {
 	private Modules modules;
 
-	private ArrayList<File> importedFiles = new ArrayList<>();
+	private ArrayList<FilePair> importedFiles = new ArrayList<>();
 
 	public ImportManager(Modules modules) {
 		this.modules = modules;
@@ -41,36 +40,33 @@ public class ImportManager {
 				}
 			}
 
-			File file = new File(new File(modules.task.root, libInfo.path), fileName);
+			File file = new File(new File(modules.task.source.root, libInfo.path), fileName);
 			if (!file.exists()) {
 				Utils.error("File `" + real + "` does not exist in `" + libName + "`.",
 					"Are you getting the file name right?");
 				Utils.forceExit();
 				return;
 			}
-			importedFiles.add(new File(libInfo.path, fileName));
+
+			File root = new File(modules.task.source.root, libInfo.path);
+			importedFiles.add(new FilePair(root, fileName, RootType.LIBRARY));
 		} else {
-			File file = new File(modules.task.root, real);
+			File file = new File(modules.task.source.root, real);
 			if (!file.exists()) {
 				Utils.error("File `" + real + "` does not exist.",
 					"`" + name + "` is imported. Imports are always relative to `scope.xml`");
 				Utils.forceExit();
 				return;
 			}
-			importedFiles.add(new File(real));
+			importedFiles.add(new FilePair(modules.task.source.root, real, RootType.NORMAL));
 		}
 	}
 
-	public ArrayList<File> getAll() {
+	public void add(FilePair file) {
+		importedFiles.add(file);
+	}
+
+	public ArrayList<FilePair> getAll() {
 		return new ArrayList<>(importedFiles);
-	}
-
-	public ArrayList<File> getAllAsm() {
-		ArrayList<File> files = new ArrayList<>();
-		for (var file : importedFiles) {
-			files.add(CompileTask.convertSourceToCompiled(
-				modules.task.root, file, CompileTask.Mode.IMPORT));
-		}
-		return files;
 	}
 }

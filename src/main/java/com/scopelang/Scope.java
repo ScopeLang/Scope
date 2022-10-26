@@ -110,6 +110,12 @@ public final class Scope {
 					break;
 				case "run":
 					File exe = task.run();
+					if (exe == null) {
+						Utils.error("An executable was not created in this project mode.",
+							"Try using `scope build` next time.");
+						break;
+					}
+
 					int exitCode = Utils.runCmdAndWait(true, exe.getAbsolutePath());
 					if (exitCode != 0) {
 						Utils.error("Compiled program exited with non-zero exit code: " + exitCode,

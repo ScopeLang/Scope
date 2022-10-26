@@ -1,6 +1,5 @@
 package com.scopelang.project;
 
-import java.nio.file.Path;
 import java.util.ArrayList;
 
 import org.antlr.v4.runtime.*;
@@ -9,6 +8,7 @@ import org.antlr.v4.runtime.tree.ParseTreeWalker;
 import org.apache.commons.io.FilenameUtils;
 
 import com.scopelang.*;
+import com.scopelang.FilePair.RootType;
 import com.scopelang.error.ErrorHandler;
 import com.scopelang.fasm.FasmGenerator;
 import com.scopelang.metadata.*;
@@ -21,38 +21,18 @@ public class CompileTask {
 		MAIN, IMPORT, LIBRARY
 	}
 
-	public File root;
-	public File source;
+	public FilePair source;
+	public FilePair output;
 	public Mode mode;
 
-	public File output;
-
-	/**
-	 * @param root
-	 *            The root directory.
-	 * @param source
-	 *            The source file relative to the root.
-	 * @param mode
-	 *            The compile mode.
-	 */
-	public CompileTask(File root, File source, Mode mode) {
-		this.root = root;
+	public CompileTask(FilePair source, Mode mode) {
 		this.source = source;
 		this.mode = mode;
-		output = convertSourceToCompiled(root, source, mode);
-	}
-
-	public Path pathRelativeToRoot(Path path) {
-		if (!path.startsWith(root.toPath())) {
-			return path;
-		}
-
-		Path base = root.toPath();
-		return base.relativize(path);
+		output = convertSourceToCompiled(source, mode);
 	}
 
 	public void run(ScopeXml xml) {
-		File file = new File(root, source.getPath());
+		File file = source.toFile();
 
 		Modules modules = new Modules(this);
 		var errorHandler = new ErrorHandler(file);
@@ -80,9 +60,8 @@ public class CompileTask {
 		CommonTokenStream stream = new CommonTokenStream(modules.lexer);
 		modules.tokenProcessor = new TokenProcessor(file, stream, xml, modules);
 
-		var allImports = modules.importManager.getAll();
-		modules.globalImports.addAll(allImports);
-		analyzeImports(allImports, modules, xml);
+		modules.globalImports.addAll(modules.importManager.getAll());
+		analyzeImports(modules.importManager.getAll(), modules, xml);
 
 		// Parse
 		modules.parser = new ScopeParser(stream);
@@ -98,83 +77,82 @@ public class CompileTask {
 		ParseTreeWalker.DEFAULT.walk(modules.funcGatherer, tree);
 
 		// Generate
-		modules.generator = new FasmGenerator(file, output, modules, mode != Mode.MAIN);
+		modules.generator = new FasmGenerator(source, output.toFile(),
+			modules, mode != Mode.MAIN);
 		modules.generator.insertHeader();
 		ParseTreeWalker.DEFAULT.walk(modules.generator, tree);
 		modules.generator.finishGen();
 
 		// Log
-		Utils.log("Generated and cached `" +
-			pathRelativeToRoot(output.toPath()).toString() + "`.");
+		Utils.log("Generated and cached `" + output.toFile().getPath() + "`.");
 	}
 
-	private void analyzeImports(ArrayList<File> imports, Modules modules, ScopeXml xml) {
+	private void analyzeImports(ArrayList<FilePair> imports, Modules modules, ScopeXml xml) {
 		for (var file : imports) {
-			var asm = convertSourceToCompiled(root, file, Mode.IMPORT);
-			var relativeAsm = pathRelativeToRoot(asm.toPath()).toFile();
+			var mode = xml.mode.equals("library") ? Mode.LIBRARY : Mode.IMPORT;
+
+			var asm = convertSourceToCompiled(file, mode);
 			boolean regen = false;
 
 			FasmAnalyzer analyzer = null;
 
-			if (!asm.exists()) {
-				Utils.log("`" + asm.getName() + "` doesn't exist. Generating.");
+			if (!asm.toFile().exists()) {
+				Utils.log("`" + asm.toFile().getName() + "` doesn't exist. Generating.");
 				regen = true;
 			} else {
 				// Check for changes
-				var md5 = Utils.hashOf(new File(root, file.getPath()));
-				analyzer = new FasmAnalyzer(root, relativeAsm);
+				var md5 = Utils.hashOf(file.toFile());
+				analyzer = new FasmAnalyzer(asm);
 				if (!md5.equals(analyzer.hash)) {
 					// Regen if so
-					Utils.log("Changed detected in `" + asm.getName() + "`. Re-generating.");
+					Utils.log("Changed detected in `" + asm.toFile().getName() +
+						"`. Re-generating.");
 					analyzer = null;
 					regen = true;
 				}
 			}
 
 			if (regen) {
-				var relative = pathRelativeToRoot(file.toPath());
-				var task = new CompileTask(root, relative.toFile(), Mode.IMPORT);
+				var task = new CompileTask(file, mode);
 				task.run(xml);
 			}
 
 			// Merge everything
 
 			if (analyzer == null) {
-				analyzer = new FasmAnalyzer(root, relativeAsm);
+				analyzer = new FasmAnalyzer(asm);
 			}
 
 			for (var func : analyzer.functions.entrySet()) {
 				modules.funcGatherer.addLibFunc(func.getKey(), func.getValue());
 			}
 
-			var newImports = new ArrayList<File>();
+			var newImports = new ArrayList<FilePair>();
 			for (var importMeta : analyzer.imports) {
-				var relative = pathRelativeToRoot(importMeta.file.toPath()).toFile();
-
-				if (modules.globalImports.contains(relative)) {
+				if (modules.globalImports.contains(importMeta.file)) {
 					continue;
 				}
 
-				newImports.add(relative);
-				modules.globalImports.add(relative);
+				newImports.add(importMeta.file);
+				modules.globalImports.add(importMeta.file);
 			}
 			analyzeImports(newImports, modules, xml);
 		}
 	}
 
-	public static File convertSourceToCompiled(File root, File source, Mode mode) {
-		if (mode == Mode.IMPORT && source.toPath().startsWith(".lib")) {
+	public static FilePair convertSourceToCompiled(FilePair file, Mode mode) {
+		if (file.type == RootType.LIBRARY) {
 			mode = Mode.LIBRARY;
 		}
 
 		if (mode == Mode.LIBRARY) {
-			String name = FilenameUtils.removeExtension(source.getPath());
-			return new File(root, name + ".scopelib");
+			String name = FilenameUtils.removeExtension(file.file.getPath());
+			return new FilePair(file.root, name + ".scopelib", RootType.LIBRARY);
 		} else {
 			String ext = mode == Mode.MAIN ? ".scopeasm" : ".scopelib";
 
-			String name = FilenameUtils.removeExtension(source.getPath());
-			return new File(new File(root, ".cache"), name + ext);
+			String name = FilenameUtils.removeExtension(file.file.getPath());
+			return new FilePair(new File(file.root, ".cache"), name + ext, RootType.CACHE);
 		}
 	}
 }

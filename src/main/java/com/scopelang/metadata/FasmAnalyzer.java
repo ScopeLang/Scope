@@ -10,10 +10,10 @@ import com.scopelang.preprocess.*;
 
 public class FasmAnalyzer {
 	public static class ImportMeta {
-		public File file;
+		public FilePair file;
 		public String md5;
 
-		public ImportMeta(File file, String md5) {
+		public ImportMeta(FilePair file, String md5) {
 			this.file = file;
 			this.md5 = md5;
 		}
@@ -30,8 +30,7 @@ public class FasmAnalyzer {
 		}
 	}
 
-	private File root;
-	private File sourceFile;
+	private FilePair sourceFile;
 	private String text;
 
 	public ArrayList<ImportMeta> imports = new ArrayList<>();
@@ -40,10 +39,9 @@ public class FasmAnalyzer {
 	public String source = null;
 	public HashMap<Identifier, FuncInfo> functions = new HashMap<>();
 
-	public FasmAnalyzer(File root, File relative) {
-		this.root = root;
-		sourceFile = relative;
-		text = Utils.readFile(new File(root, relative.getPath()));
+	public FasmAnalyzer(FilePair sourceFile) {
+		this.sourceFile = sourceFile;
+		text = Utils.readFile(sourceFile.toFile());
 
 		analyze();
 	}
@@ -91,13 +89,8 @@ public class FasmAnalyzer {
 
 			// Get the file
 			var path = text.substring(i, j);
-			File file;
-			if (sourceFile.toPath().startsWith(".lib")) {
-				var libPath = sourceFile.toPath().subpath(0, 2);
-				file = new File(new File(root, libPath.toString()), path);
-			} else {
-				file = new File(root, path);
-			}
+			var file = new FilePair(sourceFile.root,
+				new File(path), sourceFile.type);
 
 			// Add
 			imports.add(new ImportMeta(file, md5));

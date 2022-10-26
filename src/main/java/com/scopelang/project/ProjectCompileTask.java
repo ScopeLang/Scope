@@ -7,7 +7,10 @@ import java.nio.file.Path;
 
 import org.apache.commons.io.FilenameUtils;
 
+import com.scopelang.FilePair;
 import com.scopelang.Utils;
+import com.scopelang.FilePair.RootType;
+import com.scopelang.project.CompileTask.Mode;
 
 public class ProjectCompileTask {
 	public ScopeXml xml;
@@ -31,20 +34,29 @@ public class ProjectCompileTask {
 	}
 
 	public File run() {
-		// Create .cache and .lib folder
 		if (xml.mode.equals("project")) {
-			cacheDir = new File(workingDir, ".cache");
-			libDir = new File(workingDir, ".lib");
-			try {
-				Files.createDirectories(cacheDir.toPath());
-				Files.createDirectories(libDir.toPath());
-			} catch (IOException e) {
-				Utils.error("Unable to create cache folder.");
-				if (!Utils.disableLog) {
-					e.printStackTrace();
-				}
-				Utils.forceExit();
+			return runProject();
+		} else if (xml.mode.equals("library")) {
+			return runLibrary();
+		} else {
+			Utils.error("Unknown project mode `" + xml.mode + "`.");
+			return null;
+		}
+	}
+
+	private File runProject() {
+		// Create .cache and .lib folder
+		cacheDir = new File(workingDir, ".cache");
+		libDir = new File(workingDir, ".lib");
+		try {
+			Files.createDirectories(cacheDir.toPath());
+			Files.createDirectories(libDir.toPath());
+		} catch (IOException e) {
+			Utils.error("Unable to create cache folder.");
+			if (!Utils.disableLog) {
+				e.printStackTrace();
 			}
+			Utils.forceExit();
 		}
 
 		// Get libraries from web
@@ -52,7 +64,8 @@ public class ProjectCompileTask {
 
 		// Compile main file to FASM
 		File main = pathRelativeToWorkingDir(xml.mainFile.toPath()).toFile();
-		CompileTask task = new CompileTask(workingDir, main, CompileTask.Mode.MAIN);
+		var source = new FilePair(workingDir, main, RootType.NORMAL);
+		CompileTask task = new CompileTask(source, Mode.MAIN);
 		task.run(xml);
 
 		// Remove old exe
@@ -62,7 +75,7 @@ public class ProjectCompileTask {
 		// Convert FASM to executable
 		String exeName = exe.getAbsolutePath();
 		Utils.log("Compiling executable to `" + exeName + "`.");
-		Utils.runCmdAndWait("fasm", task.output.getAbsolutePath(), exeName);
+		Utils.runCmdAndWait("fasm", task.output.toFile().getAbsolutePath(), exeName);
 		Utils.runCmdAndWait("chmod", "+x", exeName);
 
 		// Error is FASM failed
@@ -73,5 +86,34 @@ public class ProjectCompileTask {
 		}
 
 		return exe;
+	}
+
+	private File runLibrary() {
+		// Compile all files
+		try {
+			var sourceFiles = Files.walk(workingDir.toPath())
+				.filter(Files::isRegularFile).map(i -> i.toFile());
+			for (File f : sourceFiles.toArray(File[]::new)) {
+				// Skip test file
+				if (f.equals(xml.testFile)) {
+					continue;
+				}
+
+				if (f.getName().endsWith(".scope")) {
+					File main = pathRelativeToWorkingDir(f.toPath()).toFile();
+					var source = new FilePair(workingDir, main, RootType.NORMAL);
+					CompileTask task = new CompileTask(source, Mode.LIBRARY);
+					task.run(xml);
+				}
+			}
+		} catch (Exception e) {
+			Utils.error("Could not locate source files.",
+				"Use `-f` for more info.");
+			if (!Utils.disableLog) {
+				e.printStackTrace();
+			}
+		}
+
+		return null;
 	}
 }

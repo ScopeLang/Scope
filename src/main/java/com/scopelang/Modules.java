@@ -1,6 +1,5 @@
 package com.scopelang;
 
-import java.io.File;
 import java.util.ArrayList;
 
 import com.scopelang.fasm.FasmGenerator;
@@ -18,7 +17,7 @@ public class Modules {
 	public FasmGenerator generator;
 	public CompileTask task;
 
-	public ArrayList<File> globalImports;
+	public ArrayList<FilePair> globalImports;
 
 	public Modules(CompileTask task) {
 		this.task = task;
