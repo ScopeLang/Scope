@@ -24,6 +24,10 @@ public class Identifier {
 		}
 	}
 
+	public Identifier(Identifier namespace, Identifier ident) {
+		this.rawName = namespace.get() + "$" + ident.get();
+	}
+
 	public String get() {
 		return rawName;
 	}

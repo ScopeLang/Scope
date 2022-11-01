@@ -4,6 +4,7 @@ import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.HashSet;
 
 import org.antlr.v4.runtime.Token;
 import org.apache.commons.io.IOUtils;
@@ -24,6 +25,7 @@ public class FasmGenerator extends ScopeBaseListener {
 	public String md5 = null;
 
 	private Identifier namespace = null;
+	public HashSet<Identifier> usings = new HashSet<>();
 
 	public Codeblock codeblock = null;
 
@@ -644,6 +646,30 @@ public class FasmGenerator extends ScopeBaseListener {
 
 	@Override
 	public void enterNamespace(NamespaceContext ctx) {
+		if (namespace != null) {
+			Utils.error(locationOf(ctx.start),
+				"You can only have 1 namespace per file.",
+				"Try removing this namespace statement.");
+			errored = true;
+			return;
+		}
+
 		namespace = new Identifier(ctx.fullIdent());
+		usings.add(namespace);
+	}
+
+	@Override
+	public void enterUsing(UsingContext ctx) {
+		var ident = new Identifier(ctx.fullIdent());
+
+		if (usings.contains(ident)) {
+			Utils.error(locationOf(ctx.start),
+				"The namespace `" + ident.toString() + "` is already being used!",
+				"Try removing this using statement.");
+			errored = true;
+			return;
+		}
+
+		usings.add(ident);
 	}
 }

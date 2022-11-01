@@ -64,6 +64,18 @@ public class Codeblock {
 	}
 
 	public void addInvoke(Identifier ident, List<ExprContext> exprs, ErrorLoc loc) {
+		var fullIdent = ident;
+		if (!modules.funcGatherer.exists(fullIdent)) {
+			for (var namespace : modules.generator.usings) {
+				fullIdent = new Identifier(namespace, ident);
+				if (modules.funcGatherer.exists(fullIdent)) {
+					break;
+				} else {
+					fullIdent = null;
+				}
+			}
+		}
+
 		// Check for errors
 		if (ident.equalsStr("main")) {
 			Utils.error(loc,
@@ -80,7 +92,7 @@ public class Codeblock {
 				"}");
 			errored = true;
 			return;
-		} else if (!modules.funcGatherer.exists(ident)) {
+		} else if (fullIdent == null) {
 			String closest = Utils.closestMatch(ident.get(),
 				modules.funcGatherer.allFuncNamesStr());
 
@@ -99,9 +111,9 @@ public class Codeblock {
 
 			errored = true;
 			return;
-		} else if (modules.funcGatherer.numberOfArgs(ident) != exprs.size()) {
+		} else if (modules.funcGatherer.numberOfArgs(fullIdent) != exprs.size()) {
 			Utils.error(loc,
-				"No function `" + ident + "` with " + exprs.size() + " arguments.",
+				"No function `" + fullIdent + "` with " + exprs.size() + " arguments.",
 				"Are you missing arguments?");
 			errored = true;
 			return;
@@ -113,7 +125,7 @@ public class Codeblock {
 			add("vlist_set " + localVariableNext++);
 			add("push rax");
 
-			var expected = modules.funcGatherer.nthArgOf(ident, i);
+			var expected = modules.funcGatherer.nthArgOf(fullIdent, i);
 			if (!expected.equals(t)) {
 				Utils.error(loc, "Argument " + (i + 1) + " does not have the correct type of `" + expected + "`.",
 					"Try changing the argument type from `" + t + "` to `" + expected + "`.");
@@ -127,7 +139,7 @@ public class Codeblock {
 			add("pop " + Utils.ARG_REGS[i]);
 		}
 
-		add("call f_" + ident.get());
+		add("call f_" + fullIdent.get());
 	}
 
 	public void startReturn() {

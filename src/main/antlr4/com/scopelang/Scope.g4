@@ -5,7 +5,7 @@ grammar Scope;
 // ================ //
 
 program // First node
-	: outerStatments EOF
+	: topStatements outerStatments EOF
 	;
 
 code
@@ -15,6 +15,9 @@ codeblock
 	: '{' code '}'
 	;
 
+topStatements
+	: (topStatement)*
+	;
 outerStatments
 	: (outerStatement)*
 	;
@@ -32,9 +35,12 @@ innerStatement
 	| assembly
 	;
 outerStatement
+	: function
+	;
+topStatement
 	: ImportKeyword StringLiteral EndLine
-	| function
 	| namespace
+	| using
 	;
 
 parameter
@@ -94,6 +100,9 @@ function
 	;
 namespace
 	: NamespaceKeyword fullIdent EndLine
+	;
+using
+	: UsingKeyword fullIdent EndLine
 	;
 
 // Expressions
@@ -178,6 +187,7 @@ WhileKeyword: 'while';
 ForKeyword: 'for';
 StepKeyword: 'step';
 NamespaceKeyword: 'namespace';
+UsingKeyword: 'using';
 
 // Primitive types
 VoidType: 'void';
