@@ -18,7 +18,7 @@ public final class AtomEvaluator {
 		} else if (ctx.fullIdent() != null && ctx.LeftParen() != null && ctx.RightParen() != null) {
 			// Handle invoke
 			var name = new Identifier(ctx.fullIdent());
-			cb.addInvoke(name, ctx.arguments().expr(), cb.locationOf(ctx.start));
+			name = cb.addInvoke(name, ctx.arguments().expr(), cb.locationOf(ctx.start));
 			return cb.modules.funcGatherer.returnTypeOf(name);
 		} else if (ctx.Identifier() != null) {
 			// Handle variables

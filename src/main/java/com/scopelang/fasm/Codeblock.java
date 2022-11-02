@@ -63,7 +63,7 @@ public class Codeblock {
 		instructions.add(instruction);
 	}
 
-	public void addInvoke(Identifier ident, List<ExprContext> exprs, ErrorLoc loc) {
+	public Identifier addInvoke(Identifier ident, List<ExprContext> exprs, ErrorLoc loc) {
 		var fullIdent = ident;
 		if (!modules.funcGatherer.exists(fullIdent)) {
 			for (var namespace : modules.generator.usings) {
@@ -91,7 +91,7 @@ public class Codeblock {
 				"\tmyNewFunc();",
 				"}");
 			errored = true;
-			return;
+			return fullIdent;
 		} else if (fullIdent == null) {
 			String closest = Utils.closestMatch(ident.get(),
 				modules.funcGatherer.allFuncNamesStr());
@@ -110,13 +110,13 @@ public class Codeblock {
 			}
 
 			errored = true;
-			return;
+			return fullIdent;
 		} else if (modules.funcGatherer.numberOfArgs(fullIdent) != exprs.size()) {
 			Utils.error(loc,
 				"No function `" + fullIdent + "` with " + exprs.size() + " arguments.",
 				"Are you missing arguments?");
 			errored = true;
-			return;
+			return fullIdent;
 		}
 
 		// Push all of the arguments
@@ -130,7 +130,7 @@ public class Codeblock {
 				Utils.error(loc, "Argument " + (i + 1) + " does not have the correct type of `" + expected + "`.",
 					"Try changing the argument type from `" + t + "` to `" + expected + "`.");
 				errored = true;
-				return;
+				return fullIdent;
 			}
 		}
 
@@ -140,6 +140,7 @@ public class Codeblock {
 		}
 
 		add("call f_" + fullIdent.get());
+		return fullIdent;
 	}
 
 	public void startReturn() {
