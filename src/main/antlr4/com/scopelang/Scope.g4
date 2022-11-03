@@ -120,6 +120,7 @@ expr
 atom
 	: literals
 	| fullIdent '(' arguments ')'
+	| typeName '[' expr ']'
 	| Identifier
 	;
 literals
@@ -129,15 +130,18 @@ literals
 	| BooleanLiteral
 	;
 
-typeName
+fullIdent
+	: Identifier ('::' Identifier)*
+	;
+primitiveType
 	: VoidType
 	| StrType
 	| IntType
 	| BoolType
 	| DecType
 	;
-fullIdent
-	: Identifier ('::' Identifier)*
+typeName
+	: primitiveType ('[' ']')?
 	;
 
 // =============== //

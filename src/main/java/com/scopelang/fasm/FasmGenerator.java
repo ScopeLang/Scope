@@ -288,7 +288,7 @@ public class FasmGenerator extends ScopeBaseListener {
 		}
 
 		// Implicitly add return statement (for void only)
-		if (ctx.typeName().VoidType() != null) {
+		if (ctx.typeName().primitiveType().VoidType() != null) {
 			String ident = ctx.Identifier().getText();
 			codeblock.startReturn();
 			if (ident.equals("main")) {

@@ -20,6 +20,17 @@ public final class AtomEvaluator {
 			var name = new Identifier(ctx.fullIdent());
 			name = cb.addInvoke(name, ctx.arguments().expr(), cb.locationOf(ctx.start));
 			return cb.modules.funcGatherer.returnTypeOf(name);
+		} else if (ctx.typeName() != null && ctx.LeftBracket() != null && ctx.RightBracket() != null) {
+			// Handle array init
+			ExprEvaluator.eval(cb, ctx.expr());
+			cb.add("mov rax, QWORD [curpkg]");
+			cb.add("mov QWORD [rax], rdi");
+			cb.add("imul rdi, 8");
+			cb.add("add rdi, 8");
+			cb.add("add QWORD [curpkg], rdi");
+			return new ScopeType("array", new ScopeType[] {
+				ScopeType.fromTypeNameCtx(ctx.typeName())
+			});
 		} else if (ctx.Identifier() != null) {
 			// Handle variables
 			String name = ctx.Identifier().getText();
