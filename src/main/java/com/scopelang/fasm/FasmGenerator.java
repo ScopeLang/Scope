@@ -154,18 +154,23 @@ public class FasmGenerator extends ScopeBaseListener {
 	}
 
 	private void writeStrings() {
+		if (!libraryMode) {
+			write("s_empty dq 0, 0");
+		}
+
 		for (var entry : modules.tokenProcessor.extactedStrings.entrySet()) {
 			String name = "s_" + md5 + "_" + entry.getValue();
 			String str = Utils.processLiteral(entry.getKey());
 
 			String bytes = "";
-			for (byte b : str.getBytes(StandardCharsets.UTF_8)) {
+			var byteArr = str.getBytes(StandardCharsets.UTF_8);
+			for (byte b : byteArr) {
 				bytes += (int) b + ", ";
 			}
 			bytes = bytes.substring(0, bytes.length() - 2);
 
-			write(";@STR," + str.length());
-			write(name + " db " + bytes);
+			write(name + " dq " + byteArr.length + ", 0");
+			write("\tdb " + bytes);
 		}
 
 		write(stringAppend);
@@ -479,15 +484,14 @@ public class FasmGenerator extends ScopeBaseListener {
 		// Set up the plus
 		if (type.equals(ScopeType.INT) && ctx.expr().size() <= 2) {
 			// Optimized increment for integers
-			codeblock.add("vlist_getptr rdi, " + codeblock.varId(ident));
-			codeblock.add("xor rsi, rsi");
+			codeblock.add("vlist_get rdi, " + codeblock.varId(ident));
 			codeblock.add("inc rdi");
 		} else {
 			codeblock.varGet(ident);
-			codeblock.add("push rdi, rsi");
+			codeblock.add("push rdi");
 			if (ctx.expr().size() >= 3) {
 				var stepType = ExprEvaluator.eval(codeblock, ctx.expr(2));
-				codeblock.add("pop rcx, rdx");
+				codeblock.add("pop rsi");
 
 				if (!stepType.equals(type)) {
 					Utils.error(locationOf(ctx.start),
@@ -526,11 +530,11 @@ public class FasmGenerator extends ScopeBaseListener {
 
 		// Variable
 		var endType = ExprEvaluator.eval(codeblock, ctx.expr(1));
-		codeblock.add("push rdi, rsi");
+		codeblock.add("push rdi");
 
 		// Expr
 		codeblock.varGet(ident);
-		codeblock.add("pop rcx, rdx");
+		codeblock.add("pop rsi");
 
 		// Check end type
 		if (!endType.equals(type)) {
@@ -587,12 +591,12 @@ public class FasmGenerator extends ScopeBaseListener {
 
 		// Expr
 		var left = ExprEvaluator.eval(codeblock, ctx.expr());
-		codeblock.add("push rdi, rsi");
+		codeblock.add("push rdi");
 
 		// Variable
 		codeblock.varGet(ident);
 		var right = codeblock.varType(ident);
-		codeblock.add("pop rcx, rdx");
+		codeblock.add("pop rsi");
 
 		// Look for the operator
 		ScopeType result = ExprEvaluator.useOperator(operator, left, right, codeblock);

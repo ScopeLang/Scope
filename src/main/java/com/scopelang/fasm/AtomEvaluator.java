@@ -70,10 +70,9 @@ public final class AtomEvaluator {
 			// Get the string literal ID from the token process
 			String str = ctx.StringLiteral().getText();
 
-			// If empty, return nullptr
+			// If empty, return empty string
 			if (str.equals("\"\"")) {
-				cb.add("mov rdi, 0");
-				cb.add("mov rsi, 0");
+				cb.add("lea rdi, [s_empty]");
 				return ScopeType.STR;
 			}
 
@@ -81,7 +80,6 @@ public final class AtomEvaluator {
 
 			String name = "s_" + cb.modules.generator.md5 + "_" + index;
 			cb.add("lea rdi, [" + name + "]");
-			cb.add("mov rsi, " + name + ".size");
 			return ScopeType.STR;
 		} else if (ctx.IntegerLiteral() != null) {
 			String strValue = ctx.IntegerLiteral().getText();
@@ -97,7 +95,6 @@ public final class AtomEvaluator {
 			}
 
 			cb.add("mov rdi, QWORD " + strValue);
-			cb.add("mov rsi, 0");
 			return ScopeType.INT;
 		} else if (ctx.DecimalLiteral() != null) {
 			String strValue = ctx.DecimalLiteral().getText();
@@ -106,7 +103,6 @@ public final class AtomEvaluator {
 			}
 
 			cb.add("mov rdi, QWORD " + strValue);
-			cb.add("mov rsi, 0");
 			return ScopeType.DEC;
 		} else if (ctx.BooleanLiteral() != null) {
 			if (ctx.BooleanLiteral().getText().equals("true")) {
@@ -114,7 +110,6 @@ public final class AtomEvaluator {
 			} else {
 				cb.add("mov rdi, 0");
 			}
-			cb.add("mov rsi, 0");
 
 			return ScopeType.BOOL;
 		} else {

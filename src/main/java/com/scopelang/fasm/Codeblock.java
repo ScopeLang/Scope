@@ -202,8 +202,7 @@ public class Codeblock {
 
 	public void varGet(String name) {
 		int id = localVariables.get(name).id;
-		add("vlist_getptr rdi, " + id);
-		add("vlist_getsize rsi, " + id);
+		add("vlist_get rdi, " + id);
 	}
 
 	public Set<String> allVarNames() {
@@ -211,7 +210,7 @@ public class Codeblock {
 	}
 
 	public void appendArgument(String name, String register, ScopeType type) {
-		add("vlist_load " + register);
+		add("mov rdi, QWORD [" + register + "]");
 		varCreate(name, type);
 	}
 

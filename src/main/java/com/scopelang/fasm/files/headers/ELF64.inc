@@ -3,22 +3,15 @@ use64
 
 ; Help ;
 ;
-; args       : rdi, rsi, (rdx, rcx, r8, r9, r10, r11)
-; vlist elem : SIZE (4) | PADDING (4) | PTR (8)
+; args: rdi, rsi, (rdx, rcx, r8, r9, r10, r11)
 ;
 ; Settings ;
 ;
 PACKAGE_SIZE = 131072 ; 1 Mb
-VLIST_SIZE = 8 + 16 * 1024 ; end + size * len
+VLIST_SIZE = 8 * 1024 ; size * len
 
 ; Macros ;
 ;
-struc db [data] {
-common
-	. db data
-	.size = $ - .
-}
-
 ; Move a DWORD (b) into a 64 bit register (a)
 macro movqd a, b {
 	if a in <rax>
@@ -36,30 +29,20 @@ macro movqd a, b {
 	end if
 }
 
-macro vlist_getptr o, index {
-	mov o, QWORD [vlist]
-	mov o, QWORD [o + index * 16 + 8]
-}
-macro vlist_getsize o, index { 
-	mov o, QWORD [vlist]
-	movqd o, DWORD [o + index * 16]
+macro vlist_get reg, index {
+	mov reg, QWORD [vlist]
+	mov reg, QWORD [reg + index * 8]
 }
 
-; args: rdi ptr, rsi size
-; ret: rax vptr
+; args: rdi ptr
+; ret: rax ptr_of_vlist
 macro vlist_set index {
 	mov rax, QWORD [vlist]
-	lea rax, [rax + index * 16]
-	mov [rax], rsi
-	mov [rax + 8], rdi
+	lea rax, [rax + index * 8]
+	mov [rax], rdi
 }
 
-; ret: rdi ptr, rsi size
-macro vlist_load ptr {
-	movqd rsi, DWORD [ptr]
-	mov rdi, QWORD [ptr + 8]
-}
-
+; Macros for pushing/popping multiple things at the same time
 macro push [i] { push i }
 macro pop  [i] { pop  i }
 
@@ -99,18 +82,18 @@ exit:
 	syscall
 	ret
 
-; args: rdi ptr, rsi size
+; args: rdi ptr
 print:
 	push rdx, rsi, rdi
-	mov rdx, rsi ; Count
-	mov rsi, rdi ; Buffer
-	mov rdi, 1   ; stdout
-	mov rax, 1   ; sys_write
+	mov rdx, QWORD [rdi] ; Count
+	lea rsi, [rdi + 16]   ; Buffer
+	mov rdi, 1           ; stdout
+	mov rax, 1           ; sys_write
 	syscall
 	pop rdi, rsi, rdx
 	ret
 
-; args: rdi from, rsi to, rdx size
+; args: rdi from, rsi to, rdx amount
 copy:
 	cmp rdx, 0
 	je .e
@@ -128,23 +111,40 @@ copy:
 	.e:
 	ret
 
-; args: rdi ptr0, rsi size0, rdx ptr1, rcx size1
-; ret: rdi ptr, rsi size
+; args: rdi ptr0, rsi ptr1
+; ret: rdi new_ptr
 concat:
-	push rdx
-	push rdx
-	mov rdx, rsi
+	push rax, rsi, rdx
+	; Get the new size
+	mov rdx, QWORD [rdi]
+	add rdx, QWORD [rsi]
+	; Put it in the new_ptr
+	mov rax, QWORD [curpkg]
+	push rax
+	mov QWORD [rax], rdx
+	add rax, 8
+	; Add type info
+	lea rdx, [rdi + 8]
+	mov rdx, QWORD [rdx]
+	mov QWORD [rax], rdx
+	add QWORD [curpkg], 16
+	; Copy to new_ptr (first)
+	mov rdx, QWORD [rdi]
+	push rsi
+	add rdi, 16
 	mov rsi, QWORD [curpkg]
 	call copy
-	add rsi, rdx
+	add QWORD [curpkg], rdx
+	; Copy to new_ptr (second)
 	pop rdi
-	mov rdx, rcx
+	mov rdx, QWORD [rdi]
+	add rdi, 16
+	mov rsi, QWORD [curpkg]
 	call copy
-	mov rdi, QWORD [curpkg]
-	sub rsi, rdi
-	add rsi, rdx
-	add QWORD [curpkg], rsi
-	pop rdx
+	add QWORD [curpkg], rdx
+	; End
+	pop rdi
+	pop rdx, rsi, rax
 	ret
 
 ; ret: rax ptr

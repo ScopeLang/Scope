@@ -29,30 +29,28 @@ public final class ExprEvaluator {
 			return ScopeType.STR;
 		}),
 		new OperatorInfo("+", ScopeType.INT, ScopeType.INT, cb -> {
-			cb.add("add rdi, rdx");
+			cb.add("add rdi, rsi");
 			return ScopeType.INT;
 		}),
 		new OperatorInfo("-", ScopeType.INT, ScopeType.INT, cb -> {
-			cb.add("sub rdi, rdx");
+			cb.add("sub rdi, rsi");
 			return ScopeType.INT;
 		}),
 		new OperatorInfo("*", ScopeType.INT, ScopeType.INT, cb -> {
-			cb.add("imul rdi, rdx");
+			cb.add("imul rdi, rsi");
 			return ScopeType.INT;
 		}),
 		new OperatorInfo("/", ScopeType.INT, ScopeType.INT, cb -> {
 			cb.add("mov rax, rdi");
-			cb.add("mov rcx, rdx");
 			cb.add("cqo");
-			cb.add("idiv rcx");
+			cb.add("idiv rsi");
 			cb.add("mov rdi, rax");
 			return ScopeType.INT;
 		}),
 		new OperatorInfo("%", ScopeType.INT, ScopeType.INT, cb -> {
 			cb.add("mov rax, rdi");
-			cb.add("mov rcx, rdx");
 			cb.add("cqo");
-			cb.add("idiv rcx");
+			cb.add("idiv rsi");
 			cb.add("mov rdi, rdx");
 			return ScopeType.INT;
 		}),
@@ -85,34 +83,35 @@ public final class ExprEvaluator {
 			return ScopeType.DEC;
 		}),
 		new OperatorInfo("[]", ScopeType.STR, ScopeType.INT, cb -> {
-			cb.add("add rdx, rdi");
-			cb.add("mov al, BYTE [rdx]");
+			cb.add("add rdi, rsi");
+			cb.add("add rdi, 16");
+			cb.add("mov al, BYTE [rdi]");
 			cb.add("mov rdi, QWORD [curpkg]");
-			cb.add("mov BYTE [rdi], al");
-			cb.add("mov rsi, 1");
-			cb.add("add QWORD [curpkg], 1");
+			cb.add("mov QWORD [rdi], 1");
+			cb.add("mov BYTE [rdi + 16], al");
+			cb.add("add QWORD [curpkg], 17");
 			return ScopeType.STR;
 		}),
 		new OperatorInfo("==", ScopeType.INT, ScopeType.INT, cb -> {
-			cb.add("cmp rdi, rdx");
+			cb.add("cmp rdi, rsi");
 			cb.add("sete al");
 			cb.add("movzx rdi, al");
 			return ScopeType.BOOL;
 		}),
 		new OperatorInfo("!=", ScopeType.INT, ScopeType.INT, cb -> {
-			cb.add("cmp rdi, rdx");
+			cb.add("cmp rdi, rsi");
 			cb.add("setne al");
 			cb.add("movzx rdi, al");
 			return ScopeType.BOOL;
 		}),
 		new OperatorInfo(">", ScopeType.INT, ScopeType.INT, cb -> {
-			cb.add("cmp rdi, rdx");
+			cb.add("cmp rdi, rsi");
 			cb.add("setg al");
 			cb.add("movzx rdi, al");
 			return ScopeType.BOOL;
 		}),
 		new OperatorInfo("<", ScopeType.INT, ScopeType.INT, cb -> {
-			cb.add("cmp rdi, rdx");
+			cb.add("cmp rdi, rsi");
 			cb.add("setl al");
 			cb.add("movzx rdi, al");
 			return ScopeType.BOOL;
@@ -120,7 +119,7 @@ public final class ExprEvaluator {
 		new OperatorInfo(">", ScopeType.DEC, ScopeType.DEC, cb -> {
 			cb.add("mov QWORD [fptmp], rdi");
 			cb.add("fld QWORD [fptmp]");
-			cb.add("mov QWORD [fptmp], rdx");
+			cb.add("mov QWORD [fptmp], rsi");
 			cb.add("fld QWORD [fptmp]");
 			cb.add("fcomip st1");
 			cb.add("fstp QWORD [fptmp]");
@@ -132,7 +131,7 @@ public final class ExprEvaluator {
 		new OperatorInfo("<", ScopeType.DEC, ScopeType.DEC, cb -> {
 			cb.add("mov QWORD [fptmp], rdi");
 			cb.add("fld QWORD [fptmp]");
-			cb.add("mov QWORD [fptmp], rdx");
+			cb.add("mov QWORD [fptmp], rsi");
 			cb.add("fld QWORD [fptmp]");
 			cb.add("fcomip st1");
 			cb.add("fstp QWORD [fptmp]");
@@ -219,7 +218,7 @@ public final class ExprEvaluator {
 		var right = ScopeType.VOID;
 		if (!opType.equals("-n") && !opType.equals("->")) {
 			right = eval(cb, ctx.expr(1));
-			cb.add("push rdi, rsi");
+			cb.add("push rdi");
 		}
 
 		// If cast, get the right type
@@ -232,7 +231,7 @@ public final class ExprEvaluator {
 
 		// Pop if not unary
 		if (!opType.equals("-n") && !opType.equals("->")) {
-			cb.add("pop rcx, rdx");
+			cb.add("pop rsi");
 		}
 
 		// Use the operator
@@ -250,7 +249,7 @@ public final class ExprEvaluator {
 	private static void writeFloatingPoint(Codeblock cb, String inst) {
 		cb.add("mov QWORD [fptmp], rdi");
 		cb.add("fld QWORD [fptmp]");
-		cb.add("mov QWORD [fptmp], rdx");
+		cb.add("mov QWORD [fptmp], rsi");
 		cb.add(inst + " QWORD [fptmp]");
 		cb.add("fstp QWORD [fptmp]");
 		cb.add("mov rdi, QWORD [fptmp]");
