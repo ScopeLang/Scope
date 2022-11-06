@@ -202,10 +202,10 @@ DecType: 'dec';
 
 // Literals
 IntegerLiteral
-	: '-'? [0-9]+
+	: '-'? [0-9']+
 	;
 DecimalLiteral
-	: '-'? [0-9]* '.' [0-9]+
+	: '-'? [0-9']* '.' [0-9]+
 	;
 StringLiteral
 	: '"' .*? '"'

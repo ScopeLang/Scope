@@ -82,7 +82,7 @@ public final class AtomEvaluator {
 			cb.add("lea rdi, [" + name + "]");
 			return ScopeType.STR;
 		} else if (ctx.IntegerLiteral() != null) {
-			String strValue = ctx.IntegerLiteral().getText();
+			String strValue = ctx.IntegerLiteral().getText().replaceAll("'", "");
 
 			// Check for overflow
 			try {
@@ -97,7 +97,7 @@ public final class AtomEvaluator {
 			cb.add("mov rdi, QWORD " + strValue);
 			return ScopeType.INT;
 		} else if (ctx.DecimalLiteral() != null) {
-			String strValue = ctx.DecimalLiteral().getText();
+			String strValue = ctx.DecimalLiteral().getText().replaceAll("'", "");
 			if (strValue.startsWith(".")) {
 				strValue = "0" + strValue;
 			}
