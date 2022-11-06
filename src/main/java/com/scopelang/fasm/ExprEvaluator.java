@@ -84,8 +84,7 @@ public final class ExprEvaluator {
 		}),
 		new OperatorInfo("[]", ScopeType.STR, ScopeType.INT, cb -> {
 			cb.add("add rdi, rsi");
-			cb.add("add rdi, 16");
-			cb.add("mov al, BYTE [rdi]");
+			cb.add("mov al, BYTE [rdi + 16]");
 			cb.add("mov rdi, QWORD [curpkg]");
 			cb.add("mov QWORD [rdi], 1");
 			cb.add("mov BYTE [rdi + 16], al");

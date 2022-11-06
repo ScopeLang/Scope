@@ -391,8 +391,7 @@ public class FasmGenerator extends ScopeBaseListener {
 		returnFound = true;
 
 		ExprEvaluator.eval(codeblock, ctx.expr());
-		codeblock.startReturn();
-		codeblock.endReturn();
+		codeblock.addReturn();
 	}
 
 	@Override

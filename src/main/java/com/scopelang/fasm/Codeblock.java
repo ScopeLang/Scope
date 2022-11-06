@@ -143,11 +143,13 @@ public class Codeblock {
 		return fullIdent;
 	}
 
+	public void addReturn() {
+		startReturn();
+		endReturn();
+	}
+
 	public void startReturn() {
-		add("pop rax");
-		add("mov QWORD [vlist], rax");
-		add("pop rax");
-		add("mov QWORD [vlist_end], rax");
+		add("freturn");
 	}
 
 	public void endReturn() {
@@ -246,14 +248,7 @@ public class Codeblock {
 
 	@Override
 	public String toString() {
-		// Save old vlist values
-		write("\tpush QWORD [vlist_end]");
-		write("\tpush QWORD [vlist]");
-
-		// Move the vlist reference frame
-		write("\tmov rax, QWORD [vlist_end]");
-		write("\tmov QWORD [vlist], rax");
-		write("\tadd QWORD [vlist_end], " + localVariableNext * 16);
+		write("\tfstart " + localVariableNext * 8);
 
 		// Write the actual code
 		for (var instruction : instructions) {

@@ -12,23 +12,6 @@ VLIST_SIZE = 8 * 1024 ; size * len
 
 ; Macros ;
 ;
-; Move a DWORD (b) into a 64 bit register (a)
-macro movqd a, b {
-	if a in <rax>
-		mov eax, b
-	else if a in <rdi>
-		mov edi, b
-	else if a in <rsi>
-		mov esi, b
-	else if a in <rdx>
-		mov edx, b
-	else if a in <rcx>
-		mov ecx, b
-	else 
-		display "Invalid register for `movqd`."
-	end if
-}
-
 macro vlist_get reg, index {
 	mov reg, QWORD [vlist]
 	mov reg, QWORD [reg + index * 8]
@@ -40,6 +23,21 @@ macro vlist_set index {
 	mov rax, QWORD [vlist]
 	lea rax, [rax + index * 8]
 	mov [rax], rdi
+}
+
+macro fstart shift {
+	push QWORD [vlist_end]
+	push QWORD [vlist]
+	mov rax, QWORD [vlist_end]
+	mov QWORD [vlist], rax
+	add QWORD [vlist_end], shift
+}
+
+macro freturn {
+	pop rax
+	mov QWORD [vlist], rax
+	pop rax
+	mov QWORD [vlist_end], rax
 }
 
 ; Macros for pushing/popping multiple things at the same time
