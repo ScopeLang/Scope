@@ -114,6 +114,7 @@ expr
 	| expr ('*' | '/' | '%') expr
 	| expr ('+' | '-') expr
 	| expr ('==' | '!=' | '>' | '<') expr
+	| expr ('&' | '|') expr
 	| '(' expr ')'
 	| atom
 	;
@@ -175,6 +176,8 @@ Equals: '==';
 NotEquals: '!=';
 GreaterThan: '>';
 LessThan: '<';
+And: '&';
+Or: '|';
 Cast: '->';
 Where: ':';
 Range: '..';

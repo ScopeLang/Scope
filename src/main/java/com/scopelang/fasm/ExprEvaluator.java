@@ -152,7 +152,15 @@ public final class ExprEvaluator {
 			cb.add("movq xmm0, rdi");
 			cb.add("cvttsd2si rdi, xmm0");
 			return ScopeType.INT;
-		})
+		}),
+		new OperatorInfo("&", ScopeType.BOOL, ScopeType.BOOL, cb -> {
+			cb.add("and rdi, rsi");
+			return ScopeType.BOOL;
+		}),
+		new OperatorInfo("|", ScopeType.BOOL, ScopeType.BOOL, cb -> {
+			cb.add("or rdi, rsi");
+			return ScopeType.BOOL;
+		}),
 	};
 
 	private ExprEvaluator() {
@@ -211,6 +219,10 @@ public final class ExprEvaluator {
 			opType = "<";
 		} else if (ctx.Cast() != null) {
 			opType = "->";
+		} else if (ctx.And() != null) {
+			opType = "&";
+		} else if (ctx.Or() != null) {
+			opType = "|";
 		}
 
 		// Get right (if not unary)
