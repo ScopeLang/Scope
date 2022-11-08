@@ -223,6 +223,15 @@ public final class ExprEvaluator {
 			opType = "&";
 		} else if (ctx.Or() != null) {
 			opType = "|";
+		} else if (ctx.Access() != null) {
+			// Temporary
+			var str = eval(cb, ctx.expr(0));
+			if (!str.equals(ScopeType.STR) && ctx.Identifier().getText() != "length") {
+				Utils.error("Can only use `.` with `length` on strings for now.");
+				return ScopeType.VOID;
+			}
+			cb.add("mov rdi, QWORD [rdi]");
+			return ScopeType.INT;
 		}
 
 		// Get right (if not unary)

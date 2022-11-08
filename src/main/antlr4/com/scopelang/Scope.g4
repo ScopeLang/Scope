@@ -107,7 +107,8 @@ using
 
 // Expressions
 expr
-	: expr '[' expr ']'
+	: expr '.' Identifier
+	| expr '[' expr ']'
 	| '-' expr
 	| expr '->' typeName
 	| expr '^' expr
@@ -182,6 +183,7 @@ Cast: '->';
 Where: ':';
 Range: '..';
 Resolve: '::';
+Access: '.';
 
 // Keywords
 FuncKeyword: 'func';
