@@ -59,27 +59,38 @@ public final class ExprEvaluator {
 			return ScopeType.INT;
 		}),
 		new OperatorInfo("+", ScopeType.DEC, ScopeType.DEC, cb -> {
-			writeFloatingPoint(cb, "fadd");
+			cb.add("movq xmm0, rdi");
+			cb.add("movq xmm1, rsi");
+			cb.add("addsd xmm0, xmm1");
+			cb.add("movq rdi, xmm0");
 			return ScopeType.DEC;
 		}),
 		new OperatorInfo("-", ScopeType.DEC, ScopeType.DEC, cb -> {
-			writeFloatingPoint(cb, "fsub");
+			cb.add("movq xmm0, rdi");
+			cb.add("movq xmm1, rsi");
+			cb.add("subsd xmm0, xmm1");
+			cb.add("movq rdi, xmm0");
 			return ScopeType.DEC;
 		}),
 		new OperatorInfo("*", ScopeType.DEC, ScopeType.DEC, cb -> {
-			writeFloatingPoint(cb, "fmul");
+			cb.add("movq xmm0, rdi");
+			cb.add("movq xmm1, rsi");
+			cb.add("mulsd xmm0, xmm1");
+			cb.add("movq rdi, xmm0");
 			return ScopeType.DEC;
 		}),
 		new OperatorInfo("/", ScopeType.DEC, ScopeType.DEC, cb -> {
-			writeFloatingPoint(cb, "fdiv");
+			cb.add("movq xmm0, rdi");
+			cb.add("movq xmm1, rsi");
+			cb.add("divsd xmm0, xmm1");
+			cb.add("movq rdi, xmm0");
 			return ScopeType.DEC;
 		}),
 		new OperatorInfo("-n", ScopeType.DEC, ScopeType.VOID, cb -> {
-			cb.add("mov QWORD [fptmp], rdi");
-			cb.add("fld QWORD [fptmp]");
-			cb.add("fchs");
-			cb.add("fstp QWORD [fptmp]");
-			cb.add("mov rdi, QWORD [fptmp]");
+			cb.add("xorpd xmm0, xmm0");
+			cb.add("movq xmm1, rdi");
+			cb.add("subsd xmm0, xmm1");
+			cb.add("movq rdi, xmm0");
 			return ScopeType.DEC;
 		}),
 		new OperatorInfo("[]", ScopeType.STR, ScopeType.INT, cb -> {
@@ -116,41 +127,30 @@ public final class ExprEvaluator {
 			return ScopeType.BOOL;
 		}),
 		new OperatorInfo(">", ScopeType.DEC, ScopeType.DEC, cb -> {
-			cb.add("mov QWORD [fptmp], rdi");
-			cb.add("fld QWORD [fptmp]");
-			cb.add("mov QWORD [fptmp], rsi");
-			cb.add("fld QWORD [fptmp]");
-			cb.add("fcomip st1");
-			cb.add("fstp QWORD [fptmp]");
-			cb.add("mov rdi, QWORD [fptmp]");
-			cb.add("setb al");
+			cb.add("movq xmm0, rdi");
+			cb.add("movq xmm1, rsi");
+			cb.add("comisd xmm0, xmm1");
+			cb.add("seta al");
 			cb.add("movzx rdi, al");
 			return ScopeType.BOOL;
 		}),
 		new OperatorInfo("<", ScopeType.DEC, ScopeType.DEC, cb -> {
-			cb.add("mov QWORD [fptmp], rdi");
-			cb.add("fld QWORD [fptmp]");
-			cb.add("mov QWORD [fptmp], rsi");
-			cb.add("fld QWORD [fptmp]");
-			cb.add("fcomip st1");
-			cb.add("fstp QWORD [fptmp]");
-			cb.add("mov rdi, QWORD [fptmp]");
+			cb.add("movq xmm0, rdi");
+			cb.add("movq xmm1, rsi");
+			cb.add("comisd xmm1, xmm0");
 			cb.add("seta al");
 			cb.add("movzx rdi, al");
 			return ScopeType.BOOL;
 		}),
 		new OperatorInfo("->", ScopeType.INT, ScopeType.DEC, cb -> {
 			cb.add("mov QWORD [fptmp], rdi");
-			cb.add("fild QWORD [fptmp]");
-			cb.add("fstp QWORD [fptmp]");
-			cb.add("mov rdi, QWORD [fptmp]");
+			cb.add("cvtsi2sd xmm0, QWORD [fptmp]");
+			cb.add("movq rdi, xmm0");
 			return ScopeType.DEC;
 		}),
 		new OperatorInfo("->", ScopeType.DEC, ScopeType.INT, cb -> {
-			cb.add("mov QWORD [fptmp], rdi");
-			cb.add("fld QWORD [fptmp]");
-			cb.add("fistp QWORD [fptmp]");
-			cb.add("mov rdi, QWORD [fptmp]");
+			cb.add("movq xmm0, rdi");
+			cb.add("cvttsd2si rdi, xmm0");
 			return ScopeType.INT;
 		})
 	};
@@ -243,15 +243,6 @@ public final class ExprEvaluator {
 			"No operator `" + opType + "` that has the arguments `" + left + "` and `" + right + "`.");
 		cb.errored = true;
 		return ScopeType.VOID;
-	}
-
-	private static void writeFloatingPoint(Codeblock cb, String inst) {
-		cb.add("mov QWORD [fptmp], rdi");
-		cb.add("fld QWORD [fptmp]");
-		cb.add("mov QWORD [fptmp], rsi");
-		cb.add(inst + " QWORD [fptmp]");
-		cb.add("fstp QWORD [fptmp]");
-		cb.add("mov rdi, QWORD [fptmp]");
 	}
 
 	public static ScopeType useOperator(String name, ScopeType left, ScopeType right, Codeblock cb) {
