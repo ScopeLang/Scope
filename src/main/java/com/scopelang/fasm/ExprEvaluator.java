@@ -158,6 +158,26 @@ public final class ExprEvaluator {
 			cb.add("movzx rdi, al");
 			return ScopeType.BOOL;
 		}),
+		new OperatorInfo("==", ScopeType.DEC, ScopeType.DEC, cb -> {
+			cb.add("movq xmm0, rdi");
+			cb.add("movq xmm1, rsi");
+			cb.add("ucomisd xmm0, xmm1");
+			cb.add("setnp al");
+			cb.add("xor rdx, rdx");
+			cb.add("cmovne rax, rdx");
+			cb.add("movzx rdi, al");
+			return ScopeType.BOOL;
+		}),
+		new OperatorInfo("!=", ScopeType.DEC, ScopeType.DEC, cb -> {
+			cb.add("movq xmm0, rdi");
+			cb.add("movq xmm1, rsi");
+			cb.add("ucomisd xmm0, xmm1");
+			cb.add("setp al");
+			cb.add("mov rdx, 1");
+			cb.add("cmovne rax, rdx");
+			cb.add("movzx rdi, al");
+			return ScopeType.BOOL;
+		}),
 		new OperatorInfo("->", ScopeType.INT, ScopeType.DEC, cb -> {
 			cb.add("mov QWORD [fptmp], rdi");
 			cb.add("cvtsi2sd xmm0, QWORD [fptmp]");
