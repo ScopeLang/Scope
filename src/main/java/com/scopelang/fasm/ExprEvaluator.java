@@ -163,7 +163,7 @@ public final class ExprEvaluator {
 			cb.add("movq xmm1, rsi");
 			cb.add("ucomisd xmm0, xmm1");
 			cb.add("setnp al");
-			cb.add("xor rdx, rdx");
+			cb.add("mov rdx, 0");
 			cb.add("cmovne rax, rdx");
 			cb.add("movzx rdi, al");
 			return ScopeType.BOOL;
