@@ -142,6 +142,22 @@ public final class ExprEvaluator {
 			cb.add("movzx rdi, al");
 			return ScopeType.BOOL;
 		}),
+		new OperatorInfo(">=", ScopeType.DEC, ScopeType.DEC, cb -> {
+			cb.add("movq xmm0, rdi");
+			cb.add("movq xmm1, rsi");
+			cb.add("comisd xmm0, xmm1");
+			cb.add("setnb al");
+			cb.add("movzx rdi, al");
+			return ScopeType.BOOL;
+		}),
+		new OperatorInfo("<=", ScopeType.DEC, ScopeType.DEC, cb -> {
+			cb.add("movq xmm0, rdi");
+			cb.add("movq xmm1, rsi");
+			cb.add("comisd xmm1, xmm0");
+			cb.add("setnb al");
+			cb.add("movzx rdi, al");
+			return ScopeType.BOOL;
+		}),
 		new OperatorInfo("->", ScopeType.INT, ScopeType.DEC, cb -> {
 			cb.add("mov QWORD [fptmp], rdi");
 			cb.add("cvtsi2sd xmm0, QWORD [fptmp]");
@@ -217,6 +233,10 @@ public final class ExprEvaluator {
 			opType = ">";
 		} else if (ctx.LessThan() != null) {
 			opType = "<";
+		} else if (ctx.GreaterThanEqual() != null) {
+			opType = ">=";
+		} else if (ctx.LessThanEqual() != null) {
+			opType = "<=";
 		} else if (ctx.Cast() != null) {
 			opType = "->";
 		} else if (ctx.And() != null) {
