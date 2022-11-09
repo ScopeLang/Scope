@@ -97,7 +97,22 @@ public final class AtomEvaluator {
 			cb.add("mov rdi, QWORD " + strValue);
 			return ScopeType.INT;
 		} else if (ctx.DecimalLiteral() != null) {
-			String strValue = ctx.DecimalLiteral().getText().replaceAll("'", "");
+			String strValue = ctx.DecimalLiteral().getText();
+
+			// Special cases
+			if (strValue.equals("infinity")) {
+				cb.add("mov rdi, QWORD 0x7FF0000000000000");
+				return ScopeType.DEC;
+			} else if (strValue.equals("-infinity")) {
+				cb.add("mov rdi, QWORD 0xFFF0000000000000");
+				return ScopeType.DEC;
+			} else if (strValue.equals("nan")) {
+				cb.add("mov rdi, QWORD 0xFFF8000000000000");
+				return ScopeType.DEC;
+			}
+
+			// Deal with number
+			strValue = strValue.replaceAll("'", "");
 			if (strValue.startsWith(".")) {
 				strValue = "0" + strValue;
 			}
