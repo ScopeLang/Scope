@@ -117,12 +117,12 @@ expr
 	| expr ('==' | '!=' | '>' | '<' | '>=' | '<=') expr
 	| expr ('&' | '|') expr
 	| '(' expr ')'
+	| arrayInit
 	| atom
 	;
 atom
 	: literals
 	| fullIdent '(' arguments ')'
-	| typeName '[' expr ']'
 	| Identifier
 	;
 literals
@@ -130,6 +130,9 @@ literals
 	| DecimalLiteral
 	| StringLiteral
 	| BooleanLiteral
+	;
+arrayInit
+	: typeName '{' arguments '}'
 	;
 
 fullIdent
@@ -143,7 +146,8 @@ primitiveType
 	| DecType
 	;
 typeName
-	: primitiveType ('[' ']')?
+	: typeName '[' ']'
+	| primitiveType
 	;
 
 // =============== //

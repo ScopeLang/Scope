@@ -4,6 +4,10 @@ use64
 ; Help ;
 ;
 ; args: rdi, rsi, (rdx, rcx, r8, r9, r10, r11)
+; ptr format: SIZE (8) | TYPE (8) | DATA (SIZE)
+;
+; temp registers (no need for reset):
+; rdi, rsi, rax, xmm0, xmm1
 ;
 ; Settings ;
 ;

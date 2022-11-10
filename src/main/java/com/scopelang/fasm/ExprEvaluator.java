@@ -209,6 +209,44 @@ public final class ExprEvaluator {
 		} else if (ctx.LeftParen() != null && ctx.RightParen() != null) {
 			// Handle parens
 			return eval(cb, ctx.expr(0));
+		} else if (ctx.arrayInit() != null) {
+			// Handle array initializers
+			var type = ScopeType.fromTypeNameCtx(ctx.arrayInit().typeName());
+
+			if (!type.name.equals("array")) {
+				Utils.error("Attempted to initialize array on non-array type.",
+					"Make `" + type.toString() + "` and array by adding `[]` at the end.");
+				cb.errored = true;
+				return ScopeType.VOID;
+			}
+
+			int byteLength = ctx.arrayInit().arguments().expr().size() * 8;
+			cb.add("push rcx");
+			cb.add("mov rcx, QWORD [curpkg]");
+			cb.add("push rcx");
+			cb.add("mov QWORD [rcx], " + byteLength);
+			cb.add("add rcx, 16");
+
+			for (var expr : ctx.arrayInit().arguments().expr()) {
+				var elemType = eval(cb, expr);
+
+				// Check if the type is correct
+				if (!elemType.equals(type.generics[0])) {
+					Utils.error("Array element does not match array type.",
+						"Try changing the element type to a `" + type.generics[0].toString() + "`.");
+					cb.errored = true;
+					return ScopeType.VOID;
+				}
+
+				cb.add("mov QWORD [rcx], rdi");
+				cb.add("add rcx, 8");
+			}
+
+			cb.add("add QWORD [curpkg], " + (byteLength + 16));
+			cb.add("pop rdi");
+			cb.add("pop rcx");
+
+			return type;
 		} else {
 			// Handle operators
 			var ret = evalOperator(cb, ctx);
@@ -265,13 +303,21 @@ public final class ExprEvaluator {
 			opType = "|";
 		} else if (ctx.Access() != null) {
 			// Temporary
-			var str = eval(cb, ctx.expr(0));
-			if (!str.equals(ScopeType.STR) && ctx.Identifier().getText() != "length") {
-				Utils.error("Can only use `.` with `length` on strings for now.");
-				return ScopeType.VOID;
+			var left = eval(cb, ctx.expr(0));
+			if (left.equals(ScopeType.STR) && ctx.Identifier().getText().equals("length")) {
+				cb.add("mov rdi, QWORD [rdi]");
+				return ScopeType.INT;
+			} else if (left.name.equals("array") && ctx.Identifier().getText().equals("length")) {
+				cb.add("mov rdi, QWORD [rdi]");
+				cb.add("lea rax, [rdi + 7]");
+				cb.add("test rdi, rdi");
+				cb.add("cmovs rdi, rax");
+				cb.add("sar rdi, 3");
+				return ScopeType.INT;
 			}
-			cb.add("mov rdi, QWORD [rdi]");
-			return ScopeType.INT;
+
+			Utils.error("Can only use `.` with `length` on strings and arrays for now.");
+			return ScopeType.VOID;
 		}
 
 		// Get right (if not unary)
@@ -292,6 +338,14 @@ public final class ExprEvaluator {
 		// Pop if not unary
 		if (!opType.equals("-n") && !opType.equals("->")) {
 			cb.add("pop rsi");
+		}
+
+		// Temporary for array
+		if (left.name.equals("array") && right.equals(ScopeType.INT)) {
+			cb.add("imul rsi, 8");
+			cb.add("add rsi, rdi");
+			cb.add("mov rdi, QWORD [rsi + 16]");
+			return left.generics[0];
 		}
 
 		// Use the operator

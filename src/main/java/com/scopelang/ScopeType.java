@@ -59,13 +59,13 @@ public class ScopeType {
 	}
 
 	public static ScopeType fromTypeNameCtx(TypeNameContext ctx) {
-		ScopeType out = new ScopeType(ctx.primitiveType().getText());
-
-		if (ctx.LeftBracket() != null && ctx.RightBracket() != null) {
-			out = new ScopeType("array", new ScopeType[] { out });
+		if (ctx.primitiveType() != null) {
+			return new ScopeType(ctx.primitiveType().getText());
+		} else {
+			return new ScopeType("array", new ScopeType[] {
+				fromTypeNameCtx(ctx.typeName())
+			});
 		}
-
-		return out;
 	}
 
 	public static ScopeType parseFromString(String str) {
