@@ -49,7 +49,10 @@ public class ImportManager {
 			}
 
 			File root = new File(modules.task.source.root, libInfo.path);
-			importedFiles.add(new FilePair(root, fileName, RootType.LIBRARY));
+			var fp = new FilePair(root, fileName, RootType.LIBRARY);
+			if (!importedFiles.contains(fp)) {
+				importedFiles.add(fp);
+			}
 		} else {
 			File file = new File(modules.task.source.root, real);
 			if (!file.exists()) {
@@ -58,7 +61,11 @@ public class ImportManager {
 				Utils.forceExit();
 				return;
 			}
-			importedFiles.add(new FilePair(modules.task.source.root, real, RootType.NORMAL));
+
+			var fp = new FilePair(modules.task.source.root, real, RootType.NORMAL);
+			if (!importedFiles.contains(fp)) {
+				importedFiles.add(fp);
+			}
 		}
 	}
 

@@ -42,6 +42,11 @@ public class CompileTask {
 		modules.importManager = new ImportManager(modules);
 		modules.preprocessor = new Preprocessor(file);
 
+		// Add `stdlib:Core` automatically (if stdlib is included)
+		if (xml.libraryInfoByName("stdlib") != null) {
+			modules.importManager.addRaw("stdlib:Core", xml);
+		}
+
 		if (errorHandler.errored) {
 			Utils.forceExit();
 		}
