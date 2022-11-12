@@ -38,6 +38,14 @@ public class FuncGatherer extends ScopeBaseListener {
 			args.add(ScopeType.fromTypeNameCtx(param.typeName()));
 		}
 
+		// Error if the function already exists
+		if (functions.containsKey(ident)) {
+			Utils.error("Multiple instances of the function `" + ident + "` were found.",
+				"Try removing one of the instances.");
+			Utils.forceExit();
+			return;
+		}
+
 		functions.put(ident, new FuncInfo(type, args.toArray(ScopeType[]::new)));
 	}
 
@@ -68,22 +76,5 @@ public class FuncGatherer extends ScopeBaseListener {
 	public Stream<String> allFuncNamesStr() {
 		return functions.keySet().stream()
 			.map(i -> i.get());
-	}
-
-	public void merge(FuncGatherer other) {
-		boolean errored = false;
-		for (var kv : other.functions.entrySet()) {
-			if (!functions.containsKey(kv.getKey())) {
-				functions.put(kv.getKey(), kv.getValue());
-			} else {
-				Utils.error("Functions name conflict for `" + kv.getKey() + "`.",
-					"There are two functions with this name. Please change the name of one of them.");
-				errored = true;
-			}
-		}
-
-		if (errored) {
-			Utils.forceExit();
-		}
 	}
 }

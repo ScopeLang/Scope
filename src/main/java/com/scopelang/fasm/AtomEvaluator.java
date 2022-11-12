@@ -19,7 +19,21 @@ public final class AtomEvaluator {
 			// Handle invoke
 			var name = new Identifier(ctx.fullIdent());
 			name = cb.addInvoke(name, ctx.arguments().expr(), cb.locationOf(ctx.start));
-			return cb.modules.funcGatherer.returnTypeOf(name);
+			if (name == null) {
+				return null;
+			} else {
+				var returnType = cb.modules.funcGatherer.returnTypeOf(name);
+
+				if (returnType.isVoid()) {
+					Utils.error(cb.locationOf(ctx.start),
+						"Attempted to get the return value of a void function.",
+						"Void functions don't return any value and therefore cannot be used in an expression.");
+					cb.errored = true;
+					return null;
+				}
+
+				return returnType;
+			}
 		} else if (ctx.Identifier() != null) {
 			// Handle variables
 			String name = ctx.Identifier().getText();
@@ -27,7 +41,7 @@ public final class AtomEvaluator {
 		} else {
 			Utils.error("Unhandled atom node.", "This is probably not your fault.");
 			cb.errored = true;
-			return ScopeType.VOID;
+			return null;
 		}
 	}
 
@@ -47,7 +61,7 @@ public final class AtomEvaluator {
 			}
 
 			cb.errored = true;
-			return ScopeType.VOID;
+			return null;
 		}
 
 		cb.varGet(name);
@@ -119,7 +133,7 @@ public final class AtomEvaluator {
 		} else {
 			Utils.error("Unhandled literal node.", "This is probably not your fault.");
 			cb.errored = true;
-			return ScopeType.VOID;
+			return null;
 		}
 	}
 }

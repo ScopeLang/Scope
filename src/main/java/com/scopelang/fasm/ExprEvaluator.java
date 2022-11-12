@@ -217,7 +217,7 @@ public final class ExprEvaluator {
 				Utils.error("Attempted to initialize array on non-array type.",
 					"Make `" + type.toString() + "` and array by adding `[]` at the end.");
 				cb.errored = true;
-				return ScopeType.VOID;
+				return null;
 			}
 
 			int byteLength = ctx.arrayInit().arguments().expr().size() * 8;
@@ -235,7 +235,7 @@ public final class ExprEvaluator {
 					Utils.error("Array element does not match array type.",
 						"Try changing the element type to a `" + type.generics[0].toString() + "`.");
 					cb.errored = true;
-					return ScopeType.VOID;
+					return null;
 				}
 
 				cb.add("mov QWORD [rcx], rdi");
@@ -250,7 +250,7 @@ public final class ExprEvaluator {
 		} else {
 			// Handle operators
 			var ret = evalOperator(cb, ctx);
-			if (!ret.isVoid()) {
+			if (ret != null) {
 				return ret;
 			}
 		}
@@ -260,7 +260,7 @@ public final class ExprEvaluator {
 			cb.errored = true;
 		}
 
-		return ScopeType.VOID;
+		return null;
 	}
 
 	private static ScopeType evalOperator(Codeblock cb, ExprContext ctx) {
@@ -317,14 +317,19 @@ public final class ExprEvaluator {
 			}
 
 			Utils.error("Can only use `.` with `length` on strings and arrays for now.");
-			return ScopeType.VOID;
+			return null;
 		}
 
 		// Get right (if not unary)
-		var right = ScopeType.VOID;
+		ScopeType right = null;
 		if (!opType.equals("-n") && !opType.equals("->")) {
 			right = eval(cb, ctx.expr(1));
 			cb.add("push rdi");
+
+			// Discard if error
+			if (right == null) {
+				return null;
+			}
 		}
 
 		// If cast, get the right type
@@ -334,6 +339,11 @@ public final class ExprEvaluator {
 
 		// Get left (only if unary)
 		var left = eval(cb, ctx.expr(0));
+
+		// Discard if error
+		if (left == null) {
+			return null;
+		}
 
 		// Pop if not unary
 		if (!opType.equals("-n") && !opType.equals("->")) {
@@ -357,7 +367,7 @@ public final class ExprEvaluator {
 		Utils.error(cb.locationOf(ctx.start),
 			"No operator `" + opType + "` that has the arguments `" + left + "` and `" + right + "`.");
 		cb.errored = true;
-		return ScopeType.VOID;
+		return null;
 	}
 
 	public static ScopeType useOperator(String name, ScopeType left, ScopeType right, Codeblock cb) {

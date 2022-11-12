@@ -321,6 +321,11 @@ public class FasmGenerator extends ScopeBaseListener {
 		var exprType = ExprEvaluator.eval(codeblock, ctx.expr());
 		var type = ScopeType.fromTypeNameCtx(ctx.typeName());
 
+		// Discard if error
+		if (exprType == null) {
+			return;
+		}
+
 		// Check
 		if (!exprType.equals(type)) {
 			Utils.error(locationOf(ctx.start),

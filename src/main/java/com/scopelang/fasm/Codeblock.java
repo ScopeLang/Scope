@@ -66,12 +66,11 @@ public class Codeblock {
 	public Identifier addInvoke(Identifier ident, List<ExprContext> exprs, ErrorLoc loc) {
 		var fullIdent = ident;
 		if (!modules.funcGatherer.exists(fullIdent)) {
+			fullIdent = null;
 			for (var namespace : modules.generator.usings) {
-				fullIdent = new Identifier(namespace, ident);
-				if (modules.funcGatherer.exists(fullIdent)) {
-					break;
-				} else {
-					fullIdent = null;
+				var newIdent = new Identifier(namespace, ident);
+				if (modules.funcGatherer.exists(newIdent)) {
+					fullIdent = newIdent;
 				}
 			}
 		}
