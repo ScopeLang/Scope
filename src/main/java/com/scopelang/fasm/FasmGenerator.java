@@ -382,6 +382,7 @@ public class FasmGenerator extends ScopeBaseListener {
 			// Put into array
 			codeblock.varGet(ident);
 			codeblock.add("pop rsi");
+			codeblock.add("imul rsi, 8");
 			codeblock.add("lea rsi, [rdi + rsi + 16]");
 			codeblock.add("pop rdi");
 			codeblock.add("mov QWORD [rsi], rdi");
