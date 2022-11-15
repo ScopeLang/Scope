@@ -28,6 +28,10 @@ public final class ExprEvaluator {
 			cb.add("call concat");
 			return ScopeType.STR;
 		}),
+		new OperatorInfo("==", ScopeType.STR, ScopeType.STR, cb -> {
+			cb.add("call streq");
+			return ScopeType.BOOL;
+		}),
 		new OperatorInfo("+", ScopeType.INT, ScopeType.INT, cb -> {
 			cb.add("add rdi, rsi");
 			return ScopeType.INT;

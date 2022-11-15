@@ -149,6 +149,33 @@ concat:
 	pop rdx, rsi, rax
 	ret
 
+; args: rdi ptr0, rsi ptr1
+; ret: rdi boolean
+streq:
+	push rcx
+	mov rcx, QWORD [rdi]
+	cmp rcx, QWORD [rsi]
+	jne .e
+	mov rax, QWORD [rdi]
+	add rdi, 16
+	add rsi, 16
+	.l:
+		mov cl, BYTE [rdi]
+		cmp cl, BYTE [rsi]
+		jne .e
+		inc rdi
+		inc rsi
+		dec rax
+		cmp rax, 1
+		jg .l
+		mov rdi, 1
+		pop rcx
+		ret
+	.e:
+	mov rdi, 0
+	pop rcx
+	ret
+
 ; ret: rax ptr
 package_create:
 	push rdi, rsi, rdx, r10, r8, r9
