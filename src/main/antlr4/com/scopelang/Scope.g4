@@ -63,6 +63,7 @@ declare
 	;
 assign
 	: Identifier '=' expr
+	| Identifier '[' expr ']' '=' expr
 	;
 opAssign
 	: Identifier '^=' expr
@@ -118,6 +119,7 @@ expr
 	| expr ('&' | '|') expr
 	| '(' expr ')'
 	| arrayInit
+	| objectInit
 	| atom
 	;
 atom
@@ -133,6 +135,9 @@ literals
 	;
 arrayInit
 	: typeName '{' arguments '}'
+	;
+objectInit
+	: typeName '(' arguments ')'
 	;
 
 fullIdent

@@ -343,26 +343,65 @@ public class FasmGenerator extends ScopeBaseListener {
 	public void exitAssign(AssignContext ctx) {
 		String ident = ctx.Identifier().getText();
 
-		// Get value and type
-		var exprType = ExprEvaluator.eval(codeblock, ctx.expr());
-
 		// Error if the local variable doesn't exist
 		if (!codeblock.varExistsOrError(ident, ctx)) {
 			return;
 		}
 
-		// Check type
-		var varType = codeblock.varType(ident);
-		if (!exprType.equals(varType)) {
-			Utils.error(locationOf(ctx.start),
-				"The variable type (`" + varType + "`) and expression (`" + exprType + "`) don't match.",
-				"Are you assigning to the wrong variable?");
-			errored = true;
-			return;
-		}
+		if (ctx.LeftBracket() != null && ctx.RightBracket() != null) {
+			// Get value and type
+			var exprType = ExprEvaluator.eval(codeblock, ctx.expr(1));
 
-		// Assign!
-		codeblock.varAssign(ident);
+			// Check type
+			var varType = codeblock.varType(ident);
+			if (!varType.generics[0].equals(exprType)) {
+				Utils.error(locationOf(ctx.start),
+					"The array type type (`" + varType.generics[0] + "`) and expression (`" + exprType
+						+ "`) don't match.",
+					"Are you assigning to the wrong array?");
+				errored = true;
+				return;
+			}
+
+			codeblock.add("push rdi");
+
+			// Get index
+			var indexType = ExprEvaluator.eval(codeblock, ctx.expr(0));
+
+			// Check index type
+			if (!indexType.equals(ScopeType.INT)) {
+				Utils.error(locationOf(ctx.start),
+					"Indices must always be the type of `int`.",
+					"Change the value inside of the brackets to an `int`.");
+				errored = true;
+				return;
+			}
+
+			codeblock.add("push rdi");
+
+			// Put into array
+			codeblock.varGet(ident);
+			codeblock.add("pop rsi");
+			codeblock.add("lea rsi, [rdi + rsi + 16]");
+			codeblock.add("pop rdi");
+			codeblock.add("mov QWORD [rsi], rdi");
+		} else {
+			// Get value and type
+			var exprType = ExprEvaluator.eval(codeblock, ctx.expr(0));
+
+			// Check type
+			var varType = codeblock.varType(ident);
+			if (!exprType.equals(varType)) {
+				Utils.error(locationOf(ctx.start),
+					"The variable type (`" + varType + "`) and expression (`" + exprType + "`) don't match.",
+					"Are you assigning to the wrong variable?");
+				errored = true;
+				return;
+			}
+
+			// Assign!
+			codeblock.varAssign(ident);
+		}
 	}
 
 	@Override

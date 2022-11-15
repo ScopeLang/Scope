@@ -65,6 +65,13 @@ public class ProjectCompileTask {
 		// Get libraries from web
 		xml.solveLibraries(this);
 
+		// Warn if stdlib isn't imported
+		if (xml.libraryInfoByName("stdlib") == null) {
+			Utils.warn("`stdlib` is not included in this project. Important features will be missing.",
+				"Add the following to to `scope.xml` to fix this issue:",
+				"<library type=\"github\">ScopeLang/stdlib</library>");
+		}
+
 		// Compile main file to FASM
 		File main = pathRelativeToWorkingDir(xml.mainFile.toPath()).toFile();
 		var source = new FilePair(workingDir, main, RootType.NORMAL);

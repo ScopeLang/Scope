@@ -128,6 +128,14 @@ public final class Utils {
 		error(str, e.toArray(new String[0]));
 	}
 
+	public static void warn(String str, String... extra) {
+		System.err.println("\033[1;93mWARN: \033[0;1m" + str + "\033[0m");
+		for (String s : extra) {
+			System.err.println("\033[1;93m   | \033[0;2m" + s + "\033[0m");
+		}
+		System.err.println("");
+	}
+
 	public static void forceExit() {
 		System.err.println("The program could not finish compiling due to above errors.");
 		System.err.println("Force exiting.");

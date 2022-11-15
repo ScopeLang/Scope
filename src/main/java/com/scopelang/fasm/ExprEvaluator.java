@@ -247,6 +247,32 @@ public final class ExprEvaluator {
 			cb.add("pop rcx");
 
 			return type;
+		} else if (ctx.objectInit() != null) {
+			// Handle object initializers
+			var type = ScopeType.fromTypeNameCtx(ctx.objectInit().typeName());
+
+			if (!type.name.equals("array")) {
+				Utils.error("Object initializers can only be used on arrays for now.");
+				cb.errored = true;
+				return null;
+			}
+
+			var exprType = eval(cb, ctx.objectInit().arguments().expr(0));
+
+			if (!exprType.equals(ScopeType.INT)) {
+				Utils.error("Object initializers can only have one int for now.");
+				cb.errored = true;
+				return null;
+			}
+
+			cb.add("mov rsi, rdi");
+			cb.add("mov rdi, QWORD [curpkg]");
+			cb.add("imul rsi, 8");
+			cb.add("mov QWORD [rdi], rsi");
+			cb.add("add rsi, 16");
+			cb.add("add QWORD [curpkg], rsi");
+
+			return type;
 		} else {
 			// Handle operators
 			var ret = evalOperator(cb, ctx);
