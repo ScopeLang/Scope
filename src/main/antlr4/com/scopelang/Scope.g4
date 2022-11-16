@@ -110,7 +110,7 @@ using
 expr
 	: expr '.' Identifier
 	| expr '[' expr ']'
-	| '-' expr
+	| ('!' | '-') expr
 	| expr '->' typeName
 	| expr '^' expr
 	| expr ('*' | '/' | '%') expr
@@ -176,6 +176,7 @@ Div: '/';
 Add: '+';
 Sub: '-';
 Mod: '%';
+Not: '!';
 PowAssign: '^=';
 MulAssign: '*=';
 DivAssign: '/=';

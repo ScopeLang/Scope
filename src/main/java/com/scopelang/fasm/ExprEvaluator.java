@@ -201,6 +201,10 @@ public final class ExprEvaluator {
 			cb.add("or rdi, rsi");
 			return ScopeType.BOOL;
 		}),
+		new OperatorInfo("!", ScopeType.BOOL, null, cb -> {
+			cb.add("xor rdi, 1");
+			return ScopeType.BOOL;
+		}),
 	};
 
 	private ExprEvaluator() {
@@ -313,6 +317,8 @@ public final class ExprEvaluator {
 			} else {
 				opType = "-n";
 			}
+		} else if (ctx.Not() != null) {
+			opType = "!";
 		} else if (ctx.Equals() != null) {
 			opType = "==";
 		} else if (ctx.NotEquals() != null) {
@@ -352,7 +358,7 @@ public final class ExprEvaluator {
 
 		// Get right (if not unary)
 		ScopeType right = null;
-		if (!opType.equals("-n") && !opType.equals("->")) {
+		if (!opType.equals("-n") && !opType.equals("->") && !opType.equals("!")) {
 			right = eval(cb, ctx.expr(1));
 			cb.add("push rdi");
 
@@ -376,7 +382,7 @@ public final class ExprEvaluator {
 		}
 
 		// Pop if not unary
-		if (!opType.equals("-n") && !opType.equals("->")) {
+		if (!opType.equals("-n") && !opType.equals("->") && !opType.equals("!")) {
 			cb.add("pop rsi");
 		}
 
