@@ -88,11 +88,35 @@ exit:
 print:
 	push rdx, rsi, rdi
 	mov rdx, QWORD [rdi] ; Count
-	lea rsi, [rdi + 16]   ; Buffer
+	lea rsi, [rdi + 16]  ; Buffer
 	mov rdi, 1           ; stdout
 	mov rax, 1           ; sys_write
 	syscall
 	pop rdi, rsi, rdx
+	ret
+
+; ret: rdi ptr
+input:
+	push rcx, rdx, rsi
+	mov rsi, QWORD [curpkg]
+	add rsi, 16
+	mov rcx, 0
+	.l: ; Read until new line
+		mov rdx, 1 ; Count
+		mov rdi, 0 ; stdin
+		mov rax, 0 ; sys_read
+		syscall
+		inc rcx ; Increment counter
+		inc rsi ; Increment ptr
+		cmp BYTE [rsi - 1], 0x0A
+		jne .l
+	mov BYTE [rsi - 1], 0 ; Get rid of the new line
+	dec rcx
+	mov rdi, QWORD [curpkg]
+	mov QWORD [rdi], rcx
+	add QWORD [curpkg], rcx
+	add QWORD [curpkg], 16
+	pop rsi, rdx, rcx
 	ret
 
 ; args: rdi from, rsi to, rdx amount
