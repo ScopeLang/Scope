@@ -86,13 +86,13 @@ exit:
 
 ; args: rdi ptr
 print:
-	push rdx, rsi, rdi
+	push rcx, rdx, rsi, rdi
 	mov rdx, QWORD [rdi] ; Count
 	lea rsi, [rdi + 16]  ; Buffer
 	mov rdi, 1           ; stdout
 	mov rax, 1           ; sys_write
 	syscall
-	pop rdi, rsi, rdx
+	pop rdi, rsi, rdx, rcx
 	ret
 
 ; ret: rdi ptr
@@ -100,22 +100,24 @@ input:
 	push rcx, rdx, rsi
 	mov rsi, QWORD [curpkg]
 	add rsi, 16
-	mov rcx, 0
+	mov rax, 0
 	.l: ; Read until new line
+		push rax
 		mov rdx, 1 ; Count
 		mov rdi, 0 ; stdin
 		mov rax, 0 ; sys_read
 		syscall
-		inc rcx ; Increment counter
+		pop rax
+		inc rax ; Increment counter
 		inc rsi ; Increment ptr
 		cmp BYTE [rsi - 1], 0x0A
 		jne .l
 	mov BYTE [rsi - 1], 0 ; Get rid of the new line
-	dec rcx
+	dec rax
 	mov rdi, QWORD [curpkg]
-	mov QWORD [rdi], rcx
-	add QWORD [curpkg], rcx
+	mov QWORD [rdi], rax
 	add QWORD [curpkg], 16
+	add QWORD [curpkg], rax
 	pop rsi, rdx, rcx
 	ret
 
@@ -202,7 +204,7 @@ streq:
 
 ; ret: rax ptr
 package_create:
-	push rdi, rsi, rdx, r10, r8, r9
+	push rcx, rdi, rsi, rdx, r10, r8, r9
 	xor rdi, rdi
 	mov rsi, PACKAGE_SIZE ; Map size
 	mov rdx, 0x02 ; R/W
@@ -211,14 +213,14 @@ package_create:
 	xor r9, r9 ; No offset
 	mov rax, 9 ; sys_mmap
 	syscall
-	pop r9, r8, r10, rdx, rsi, rdi
+	pop r9, r8, r10, rdx, rsi, rdi, rcx
 	ret
 
 ; args: rdi ptr
 package_delete:
-	push rsi
+	push rcx, rsi
 	mov rsi, PACKAGE_SIZE ; Map size
 	mov rax, 11 ; sys_munmap
 	syscall
-	pop rsi
+	pop rsi, rcx
 	ret
