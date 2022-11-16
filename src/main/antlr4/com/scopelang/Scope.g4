@@ -32,6 +32,8 @@ innerStatement
 	| if
 	| while
 	| for
+	| break EndLine
+	| continue EndLine
 	| assembly
 	;
 outerStatement
@@ -90,6 +92,12 @@ while
 	;
 for
 	: ForKeyword '(' typeName Identifier ':' expr '..' expr (StepKeyword expr)? ')' codeblock
+	;
+break
+	: BreakKeyword
+	;
+continue
+	: ContinueKeyword
 	;
 assembly
 	: AssemblyBlock
@@ -209,6 +217,8 @@ ForKeyword: 'for';
 StepKeyword: 'step';
 NamespaceKeyword: 'namespace';
 UsingKeyword: 'using';
+BreakKeyword: 'break';
+ContinueKeyword: 'continue';
 
 // Primitive types
 VoidType: 'void';

@@ -446,47 +446,64 @@ public class FasmGenerator extends ScopeBaseListener {
 
 	@Override
 	public void enterIf(IfContext ctx) {
+		var label = new Codeblock.LabelInfo();
+		label.elseOrEndLabel = codeblock.nextLabelName();
+		label.endLabel = label.elseOrEndLabel;
+
 		ExprEvaluator.eval(codeblock, ctx.expr());
 		codeblock.add("cmp rdi, 0");
-		codeblock.add("je ." + codeblock.pushLabelName());
+		codeblock.add("je ." + label.elseOrEndLabel);
 		codeblock.indent++;
+
+		codeblock.pushLabelInfo(label);
 	}
 
 	@Override
 	public void enterElse(ElseContext ctx) {
-		String label = codeblock.popLabelName();
-		codeblock.add("jmp ." + codeblock.pushLabelName());
+		var label = codeblock.peekLabelInfo();
+		label.endLabel = codeblock.nextLabelName();
+
+		codeblock.add("jmp ." + label.endLabel);
 
 		codeblock.indent--;
-		codeblock.add("." + label + ":");
+		codeblock.add("." + label.elseOrEndLabel + ":");
 		codeblock.indent++;
 	}
 
 	@Override
 	public void exitIf(IfContext ctx) {
 		codeblock.indent--;
-		codeblock.add("." + codeblock.popLabelName() + ":");
+		codeblock.add("." + codeblock.popLabelInfo().endLabel + ":");
 	}
 
 	@Override
 	public void enterWhile(WhileContext ctx) {
-		codeblock.add("jmp ." + codeblock.pushLabelName());
-		codeblock.add("." + codeblock.pushLabelName() + ":");
+		var label = new Codeblock.LabelInfo();
+		label.startLabel = codeblock.nextLabelName();
+		label.conditionLabel = codeblock.nextLabelName();
+		label.breakLabel = codeblock.nextLabelName();
+		label.continueLabel = label.conditionLabel;
+
+		codeblock.add("jmp ." + label.conditionLabel);
+		codeblock.add("." + label.startLabel + ":");
 		codeblock.indent++;
+
+		codeblock.pushLabelInfo(label);
 	}
 
 	@Override
 	public void exitWhile(WhileContext ctx) {
-		String codeLabel = codeblock.popLabelName();
+		var label = codeblock.popLabelInfo();
 
 		codeblock.indent--;
-		codeblock.add("." + codeblock.popLabelName() + ":");
+		codeblock.add("." + label.conditionLabel + ":");
 		codeblock.indent++;
 
 		ExprEvaluator.eval(codeblock, ctx.expr());
 		codeblock.add("cmp rdi, 1");
-		codeblock.add("je ." + codeLabel);
+		codeblock.add("je ." + label.startLabel);
 		codeblock.indent--;
+		codeblock.add("." + label.breakLabel + ":");
 	}
 
 	@Override
@@ -512,18 +529,30 @@ public class FasmGenerator extends ScopeBaseListener {
 			return;
 		}
 
+		var label = new Codeblock.LabelInfo();
+		label.startLabel = codeblock.nextLabelName();
+		label.conditionLabel = codeblock.nextLabelName();
+		label.breakLabel = codeblock.nextLabelName();
+		label.continueLabel = codeblock.nextLabelName();
+
 		// Add ASM
 		codeblock.varCreate(ident, type);
-		codeblock.add("jmp ." + codeblock.pushLabelName());
-		codeblock.add("." + codeblock.pushLabelName() + ":");
+		codeblock.add("jmp ." + label.conditionLabel);
+		codeblock.add("." + label.startLabel + ":");
 		codeblock.indent++;
+
+		codeblock.pushLabelInfo(label);
 	}
 
 	@Override
 	public void exitFor(ForContext ctx) {
 		String ident = ctx.Identifier().getText();
 		var type = ScopeType.fromTypeNameCtx(ctx.typeName());
-		String codeLabel = codeblock.popLabelName();
+		var label = codeblock.popLabelInfo();
+
+		codeblock.indent--;
+		codeblock.add("." + label.continueLabel + ":");
+		codeblock.indent++;
 
 		// Set up the plus
 		if (type.equals(ScopeType.INT) && ctx.expr().size() <= 2) {
@@ -569,7 +598,7 @@ public class FasmGenerator extends ScopeBaseListener {
 
 		codeblock.varAssign(ident);
 		codeblock.indent--;
-		codeblock.add("." + codeblock.popLabelName() + ":");
+		codeblock.add("." + label.conditionLabel + ":");
 		codeblock.indent++;
 
 		// Variable
@@ -601,9 +630,10 @@ public class FasmGenerator extends ScopeBaseListener {
 		}
 
 		codeblock.add("cmp rdi, 1");
-		codeblock.add("je ." + codeLabel);
+		codeblock.add("je ." + label.startLabel);
 		codeblock.indent--;
 
+		codeblock.add("." + label.breakLabel + ":");
 		codeblock.decreaseScope();
 		codeblock.indent--;
 	}
@@ -719,5 +749,35 @@ public class FasmGenerator extends ScopeBaseListener {
 		}
 
 		usings.add(ident);
+	}
+
+	@Override
+	public void enterBreak(BreakContext ctx) {
+		var label = codeblock.peekLabelInfo();
+
+		if (label.breakLabel == null) {
+			Utils.error(locationOf(ctx.start),
+				"Attempted to use a break statement outside of a loop.",
+				"Try removing this break statement.");
+			codeblock.errored = true;
+			return;
+		}
+
+		codeblock.add("jmp ." + label.breakLabel);
+	}
+
+	@Override
+	public void enterContinue(ContinueContext ctx) {
+		var label = codeblock.peekLabelInfo();
+
+		if (label.continueLabel == null) {
+			Utils.error(locationOf(ctx.start),
+				"Attempted to use a continue statement outside of a loop.",
+				"Try removing this continue statement.");
+			codeblock.errored = true;
+			return;
+		}
+
+		codeblock.add("jmp ." + label.continueLabel);
 	}
 }

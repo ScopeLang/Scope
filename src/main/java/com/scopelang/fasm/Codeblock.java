@@ -26,6 +26,20 @@ public class Codeblock {
 		}
 	}
 
+	public static class LabelInfo {
+		public String endLabel;
+		public String elseOrEndLabel;
+
+		public String startLabel;
+		public String conditionLabel;
+		public String breakLabel;
+		public String continueLabel;
+
+		public LabelInfo() {
+
+		}
+	}
+
 	public boolean errored = false;
 
 	public Modules modules;
@@ -35,7 +49,7 @@ public class Codeblock {
 	private HashMap<String, VariableInfo> localVariables = new HashMap<>();
 
 	private int labelNext = 0;
-	private Stack<String> labelStack = new Stack<>();
+	private Stack<LabelInfo> labelStack = new Stack<>();
 
 	private ArrayList<String> instructions = new ArrayList<>();
 	private String output = "";
@@ -215,13 +229,15 @@ public class Codeblock {
 		varCreate(name, type);
 	}
 
-	public String pushLabelName() {
-		String name = "l" + labelNext++;
-		labelStack.push(name);
-		return name;
+	public String nextLabelName() {
+		return "l" + labelNext++;
 	}
 
-	public String popLabelName() {
+	public void pushLabelInfo(LabelInfo labelInfo) {
+		labelStack.push(labelInfo);
+	}
+
+	public LabelInfo popLabelInfo() {
 		if (labelStack.empty()) {
 			Utils.error("Unrecoverable label stack error.",
 				"This should go away once above errors are fixed.");
@@ -230,6 +246,12 @@ public class Codeblock {
 		}
 
 		return labelStack.pop();
+	}
+
+	public LabelInfo peekLabelInfo() {
+		var l = popLabelInfo();
+		pushLabelInfo(l);
+		return l;
 	}
 
 	public void increaseScope() {
