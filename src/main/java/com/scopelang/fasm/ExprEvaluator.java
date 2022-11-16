@@ -58,7 +58,7 @@ public final class ExprEvaluator {
 			cb.add("mov rdi, rdx");
 			return ScopeType.INT;
 		}),
-		new OperatorInfo("-n", ScopeType.INT, ScopeType.VOID, cb -> {
+		new OperatorInfo("-n", ScopeType.INT, null, cb -> {
 			cb.add("neg rdi");
 			return ScopeType.INT;
 		}),
@@ -90,7 +90,7 @@ public final class ExprEvaluator {
 			cb.add("movq rdi, xmm0");
 			return ScopeType.DEC;
 		}),
-		new OperatorInfo("-n", ScopeType.DEC, ScopeType.VOID, cb -> {
+		new OperatorInfo("-n", ScopeType.DEC, null, cb -> {
 			cb.add("xorpd xmm0, xmm0");
 			cb.add("movq xmm1, rdi");
 			cb.add("subsd xmm0, xmm1");
@@ -406,7 +406,15 @@ public final class ExprEvaluator {
 				continue;
 			}
 
-			if (!left.equals(op.left) || !right.equals(op.right)) {
+			if ((left == null) != (op.left == null) ||
+				(right == null) != (op.right == null)) {
+
+				continue;
+			}
+
+			if ((left != null && !left.equals(op.left)) ||
+				(right != null && !right.equals(op.right))) {
+
 				continue;
 			}
 
