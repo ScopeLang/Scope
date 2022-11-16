@@ -753,9 +753,9 @@ public class FasmGenerator extends ScopeBaseListener {
 
 	@Override
 	public void enterBreak(BreakContext ctx) {
-		var label = codeblock.peekLabelInfo();
+		var label = codeblock.peekLoopLabelInfo();
 
-		if (label.breakLabel == null) {
+		if (label == null) {
 			Utils.error(locationOf(ctx.start),
 				"Attempted to use a break statement outside of a loop.",
 				"Try removing this break statement.");
@@ -768,9 +768,9 @@ public class FasmGenerator extends ScopeBaseListener {
 
 	@Override
 	public void enterContinue(ContinueContext ctx) {
-		var label = codeblock.peekLabelInfo();
+		var label = codeblock.peekLoopLabelInfo();
 
-		if (label.continueLabel == null) {
+		if (label == null) {
 			Utils.error(locationOf(ctx.start),
 				"Attempted to use a continue statement outside of a loop.",
 				"Try removing this continue statement.");
