@@ -11,7 +11,7 @@ use64
 ;
 ; Settings ;
 ;
-PACKAGE_SIZE = 131072 ; 1 Mb
+PACKAGE_SIZE = 50 * 1024 * 1024 ; 50 Mb
 VLIST_SIZE = 8 * 1024 ; size * len
 
 ; Macros ;
