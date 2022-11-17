@@ -1,0 +1,124 @@
+import "stdlib:Core";
+import "stdlib:Text/Core";
+
+using Text;
+
+func void main() {
+	println("USE ALL LOWERCASE LETTERS");
+	print("Let a friend enter the word: ");
+	str word = input();
+
+	str correctLetters = "";
+	str wrongLetters = "";
+	int wrongGuesses = 0;
+
+	while (true) {
+		// Clear
+		print("\033[H\033[2J");
+
+		// Print hanged man
+		printHangedMan(wrongGuesses);
+
+		// Move the cursor
+		print("\033[s\033[4A\033[15C");
+
+		// Print word with blanks
+		bool done = true;
+		for (int i : 0..word.length) {
+			if (indexOfChar(correctLetters, word[i]) != -1) {
+				print(word[i] + " ");
+			} else {
+				print("_ ");
+				done = false;
+			}
+		}
+
+		// Return the cursor
+		print("\033[u\n");
+		println("Wrong letters: " + wrongLetters);
+
+		if (done) {
+			println("You won!");
+			break;
+		}
+
+		print("Enter a letter: ");
+		str letter = input();
+		
+		if (letter.length != 1) {
+			continue;
+		}
+
+		if (indexOfChar(correctLetters, letter) != -1) {
+			continue;
+		}
+		
+		if (indexOfChar(wrongLetters, letter) != -1) {
+			continue;
+		}
+
+		// Add it to correct letters
+		if (indexOfChar(word, letter) != -1) {
+			correctLetters += letter;
+		} else {
+			wrongLetters += letter + " ";
+			wrongGuesses += 1;
+		}
+
+		if (wrongGuesses >= 6) {
+			// Clear
+			print("\033[H\033[2J");
+			printHangedMan(wrongGuesses);
+			println("You lost! The word was `" + word + "`!");
+			break;
+		}
+	}
+}
+
+func void printHangedMan(int wrongGuesses) {
+	println("");
+	println("  +---+  ");
+	println("  |   |  ");
+
+	if (wrongGuesses > 0) {
+		println("  0   |  ");
+	} else {
+		println("      |  ");
+	}
+	
+	if (wrongGuesses > 1) {
+		print(" /");
+	} else {
+		print("  ");
+	}
+
+	if (wrongGuesses > 2) {
+		print("|");
+	} else {
+		print(" ");
+	}
+
+	if (wrongGuesses > 3) {
+		print("\\  |  ");
+	} else {
+		print("   |  ");
+	}
+
+	println("");
+	
+	if (wrongGuesses > 4) {
+		print(" / ");
+	} else {
+		print("   ");
+	}
+
+	if (wrongGuesses > 5) {
+		print("\\  |  ");
+	} else {
+		print("   |  ");
+	}
+
+	println("");
+	println("      |");
+	println("=========");
+}

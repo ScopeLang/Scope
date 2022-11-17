@@ -130,6 +130,18 @@ public final class ExprEvaluator {
 			cb.add("movzx rdi, al");
 			return ScopeType.BOOL;
 		}),
+		new OperatorInfo(">=", ScopeType.INT, ScopeType.INT, cb -> {
+			cb.add("cmp rdi, rsi");
+			cb.add("setge al");
+			cb.add("movzx rdi, al");
+			return ScopeType.BOOL;
+		}),
+		new OperatorInfo("<=", ScopeType.INT, ScopeType.INT, cb -> {
+			cb.add("cmp rdi, rsi");
+			cb.add("setle al");
+			cb.add("movzx rdi, al");
+			return ScopeType.BOOL;
+		}),
 		new OperatorInfo(">", ScopeType.DEC, ScopeType.DEC, cb -> {
 			cb.add("movq xmm0, rdi");
 			cb.add("movq xmm1, rsi");
