@@ -56,7 +56,7 @@ public final class AtomEvaluator {
 			} else {
 				Utils.error(cb.locationOf(symbol),
 					"Variable with name `" + name + "` doesn't exist.",
-					"You can defined a variable like so:",
+					"You can define a variable like so:",
 					"string " + name + " = \"Test\";");
 			}
 

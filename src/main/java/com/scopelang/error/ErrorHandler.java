@@ -27,6 +27,10 @@ public class ErrorHandler implements ANTLRErrorListener {
 		if (msg.startsWith("missing ';'")) {
 			Utils.error(loc, "Missing `;` at end of statement.",
 				"Try adding a `;` at the end of line " + (line - 1) + ".");
+		} else if (msg.startsWith("mismatched input '")) {
+			var unexpected = msg.substring(18, msg.indexOf("'", 18));
+			Utils.error(loc, "Unexpected token `" + unexpected + "`.",
+				"`" + unexpected + "` is not supposed to be here. Try removing it.");
 		} else {
 			Utils.error(loc, "Syntax error: " + msg);
 		}

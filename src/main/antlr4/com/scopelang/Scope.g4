@@ -94,7 +94,7 @@ for
 	: ForKeyword '(' typeName Identifier ':' expr '..' expr (StepKeyword expr)? ')' codeblock
 	;
 break
-	: BreakKeyword+
+	: BreakKeyword+ ContinueKeyword?
 	;
 continue
 	: ContinueKeyword
@@ -123,7 +123,7 @@ expr
 	| expr '^' expr
 	| expr ('*' | '/' | '%') expr
 	| expr ('+' | '-') expr
-	| expr ('==' | '!=' | '>' | '<' | '>=' | '<=') expr
+	| expr ('==' | '!=' | '>' | '<' | '>=' | '<=' | IsKeyword) expr
 	| expr ('&' | '|') expr
 	| '(' expr ')'
 	| arrayInit
@@ -219,6 +219,7 @@ NamespaceKeyword: 'namespace';
 UsingKeyword: 'using';
 BreakKeyword: 'break';
 ContinueKeyword: 'continue';
+IsKeyword: 'is';
 
 // Primitive types
 VoidType: 'void';

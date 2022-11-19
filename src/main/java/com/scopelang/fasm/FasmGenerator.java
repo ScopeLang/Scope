@@ -753,7 +753,12 @@ public class FasmGenerator extends ScopeBaseListener {
 
 	@Override
 	public void enterBreak(BreakContext ctx) {
-		var label = codeblock.peekLoopLabelInfo(ctx.BreakKeyword().size() - 1);
+		int size = ctx.BreakKeyword().size();
+		if (ctx.ContinueKeyword() != null) {
+			size++;
+		}
+
+		var label = codeblock.peekLoopLabelInfo(size - 1);
 
 		if (label == null) {
 			Utils.error(locationOf(ctx.start),
@@ -763,7 +768,11 @@ public class FasmGenerator extends ScopeBaseListener {
 			return;
 		}
 
-		codeblock.add("jmp ." + label.breakLabel);
+		if (ctx.ContinueKeyword() != null) {
+			codeblock.add("jmp ." + label.continueLabel);
+		} else {
+			codeblock.add("jmp ." + label.breakLabel);
+		}
 	}
 
 	@Override

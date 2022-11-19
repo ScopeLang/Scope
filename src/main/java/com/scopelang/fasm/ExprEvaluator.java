@@ -310,6 +310,20 @@ public final class ExprEvaluator {
 	}
 
 	private static ScopeType evalOperator(Codeblock cb, ExprContext ctx) {
+		// Special case for `is`. Works with anything.
+		if (ctx.IsKeyword() != null) {
+			eval(cb, ctx.expr(1));
+			cb.add("push rdi");
+			eval(cb, ctx.expr(0));
+			cb.add("pop rsi");
+
+			cb.add("cmp rdi, rsi");
+			cb.add("sete al");
+			cb.add("movzx rdi, al");
+
+			return ScopeType.BOOL;
+		}
+
 		String opType = null;
 		if (ctx.LeftBracket() != null && ctx.RightBracket() != null) {
 			opType = "[]";
