@@ -255,9 +255,17 @@ public class Codeblock {
 	}
 
 	public LabelInfo peekLoopLabelInfo() {
+		return peekLoopLabelInfo(0);
+	}
+
+	public LabelInfo peekLoopLabelInfo(int depth) {
 		for (int i = labelStack.size() - 1; i >= 0; i--) {
 			if (labelStack.get(i).conditionLabel != null) {
-				return labelStack.get(i);
+				if (depth <= 0) {
+					return labelStack.get(i);
+				} else {
+					depth--;
+				}
 			}
 		}
 

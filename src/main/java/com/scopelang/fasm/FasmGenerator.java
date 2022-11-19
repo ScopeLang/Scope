@@ -753,12 +753,12 @@ public class FasmGenerator extends ScopeBaseListener {
 
 	@Override
 	public void enterBreak(BreakContext ctx) {
-		var label = codeblock.peekLoopLabelInfo();
+		var label = codeblock.peekLoopLabelInfo(ctx.BreakKeyword().size() - 1);
 
 		if (label == null) {
 			Utils.error(locationOf(ctx.start),
 				"Attempted to use a break statement outside of a loop.",
-				"Try removing this break statement.");
+				"Try removing this break statement or removing a nested break.");
 			codeblock.errored = true;
 			return;
 		}

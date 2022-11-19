@@ -94,7 +94,7 @@ for
 	: ForKeyword '(' typeName Identifier ':' expr '..' expr (StepKeyword expr)? ')' codeblock
 	;
 break
-	: BreakKeyword
+	: BreakKeyword+
 	;
 continue
 	: ContinueKeyword
