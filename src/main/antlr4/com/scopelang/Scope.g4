@@ -64,8 +64,7 @@ declare
 	: typeName Identifier '=' expr
 	;
 assign
-	: Identifier '=' expr
-	| Identifier '[' expr ']' '=' expr
+	: Identifier ('[' expr ']')* '=' expr
 	;
 opAssign
 	: Identifier '^=' expr

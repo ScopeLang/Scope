@@ -348,15 +348,28 @@ public class FasmGenerator extends ScopeBaseListener {
 			return;
 		}
 
-		if (ctx.LeftBracket() != null && ctx.RightBracket() != null) {
+		if (ctx.LeftBracket().size() > 0) {
 			// Get value and type
-			var exprType = ExprEvaluator.eval(codeblock, ctx.expr(1));
+			var exprType = ExprEvaluator.eval(codeblock, ctx.expr(ctx.LeftBracket().size()));
+
+			// Get type
+			var varType = codeblock.varType(ident);
+			for (int i = 0; i < ctx.LeftBracket().size(); i++) {
+				if (!varType.name.equals("array") || varType.generics == null) {
+					Utils.error(locationOf(ctx.start),
+						"You can only use the index arrays for now.",
+						"Are you assigning to the wrong variable?");
+					errored = true;
+					return;
+				}
+
+				varType = varType.generics[0];
+			}
 
 			// Check type
-			var varType = codeblock.varType(ident);
-			if (!varType.generics[0].equals(exprType)) {
+			if (!varType.equals(exprType)) {
 				Utils.error(locationOf(ctx.start),
-					"The array type type (`" + varType.generics[0] + "`) and expression (`" + exprType
+					"The array type type (`" + varType + "`) and expression (`" + exprType
 						+ "`) don't match.",
 					"Are you assigning to the wrong array?");
 				errored = true;
@@ -365,25 +378,37 @@ public class FasmGenerator extends ScopeBaseListener {
 
 			codeblock.add("push rdi");
 
-			// Get index
-			var indexType = ExprEvaluator.eval(codeblock, ctx.expr(0));
+			for (int i = 0; i < ctx.LeftBracket().size(); i++) {
+				// Get index
+				var indexType = ExprEvaluator.eval(codeblock, ctx.expr(i));
 
-			// Check index type
-			if (!indexType.equals(ScopeType.INT)) {
-				Utils.error(locationOf(ctx.start),
-					"Indices must always be the type of `int`.",
-					"Change the value inside of the brackets to an `int`.");
-				errored = true;
-				return;
+				// Check index type
+				if (!indexType.equals(ScopeType.INT)) {
+					Utils.error(locationOf(ctx.start),
+						"Indices must always be the type of `int`.",
+						"Change the value inside of the brackets to an `int`.");
+					errored = true;
+					return;
+				}
+
+				codeblock.add("push rdi");
 			}
 
-			codeblock.add("push rdi");
-
 			// Put into array
+
 			codeblock.varGet(ident);
-			codeblock.add("pop rsi");
-			codeblock.add("imul rsi, 8");
-			codeblock.add("lea rsi, [rdi + rsi + 16]");
+
+			for (int i = 0; i < ctx.LeftBracket().size(); i++) {
+				codeblock.add("pop rsi");
+				codeblock.add("imul rsi, 8");
+
+				if (i >= ctx.LeftBracket().size() - 1) {
+					codeblock.add("lea rsi, [rdi + rsi + 16]");
+				} else {
+					codeblock.add("mov rdi, QWORD [rdi + rsi + 16]");
+				}
+			}
+
 			codeblock.add("pop rdi");
 			codeblock.add("mov QWORD [rsi], rdi");
 		} else {
