@@ -69,71 +69,16 @@ public final class AtomEvaluator {
 	}
 
 	private static ScopeType evalLiteral(Codeblock cb, LiteralsContext ctx) {
-		if (ctx.StringLiteral() != null) {
-			// Get the string literal ID from the token process
-			String str = ctx.StringLiteral().getText();
-
-			// If empty, return empty string
-			if (str.equals("\"\"")) {
-				cb.add("lea rdi, [s_empty]");
-				return ScopeType.STR;
-			}
-
-			int index = cb.modules.tokenProcessor.extactedStrings.get(str);
-
-			String name = "s_" + cb.modules.generator.md5 + "_" + index;
-			cb.add("lea rdi, [" + name + "]");
-			return ScopeType.STR;
-		} else if (ctx.IntegerLiteral() != null) {
-			String strValue = ctx.IntegerLiteral().getText().replaceAll("'", "");
-
-			// Check for overflow
-			try {
-				Long.parseLong(strValue);
-			} catch (Exception e) {
-				Utils.error(cb.locationOf(ctx.start),
-					"Integer literal value must be between -9,223,372,036,854,775,808 and 9,223,372,036,854,775,807.",
-					"Try using a `long` for bigger values.");
-				cb.errored = true;
-			}
-
-			cb.add("mov rdi, QWORD " + strValue);
-			return ScopeType.INT;
-		} else if (ctx.DecimalLiteral() != null) {
-			String strValue = ctx.DecimalLiteral().getText();
-
-			// Special cases
-			if (strValue.equals("infinity")) {
-				cb.add("mov rdi, QWORD 0x7FF0000000000000");
-				return ScopeType.DEC;
-			} else if (strValue.equals("-infinity")) {
-				cb.add("mov rdi, QWORD 0xFFF0000000000000");
-				return ScopeType.DEC;
-			} else if (strValue.equals("nan")) {
-				cb.add("mov rdi, QWORD 0xFFF8000000000000");
-				return ScopeType.DEC;
-			}
-
-			// Deal with number
-			strValue = strValue.replaceAll("'", "");
-			if (strValue.startsWith(".")) {
-				strValue = "0" + strValue;
-			}
-
-			cb.add("mov rdi, QWORD " + strValue);
-			return ScopeType.DEC;
-		} else if (ctx.BooleanLiteral() != null) {
-			if (ctx.BooleanLiteral().getText().equals("true")) {
-				cb.add("mov rdi, 1");
-			} else {
-				cb.add("mov rdi, 0");
-			}
-
-			return ScopeType.BOOL;
-		} else {
-			Utils.error("Unhandled literal node.", "This is probably not your fault.");
-			cb.errored = true;
+		var output = LiteralEvaluator.evalLiteral(cb, ctx);
+		if (output == null) {
 			return null;
 		}
+
+		if (output.address) {
+			cb.add("lea rdi, " + output.output);
+		} else {
+			cb.add("mov rdi, " + output.output);
+		}
+		return output.type;
 	}
 }
