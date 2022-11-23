@@ -84,6 +84,7 @@ public class Codeblock {
 				var newIdent = new Identifier(namespace, ident);
 				if (modules.funcGatherer.exists(newIdent)) {
 					fullIdent = newIdent;
+					break;
 				}
 			}
 		}

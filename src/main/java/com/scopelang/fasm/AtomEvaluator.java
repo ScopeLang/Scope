@@ -54,15 +54,33 @@ public final class AtomEvaluator {
 	private static ScopeType evalVariable(Codeblock cb, Identifier name, ErrorLoc errorLoc) {
 		var strName = name.toString();
 		if (!cb.varExists(strName)) {
-			if (cb.modules.constGatherer.exists(name)) {
-				return evalConst(cb, name, errorLoc);
-			}
+			return evalConst(cb, name, errorLoc);
+		}
 
+		cb.varGet(strName);
+		return cb.varType(strName);
+	}
+
+	private static ScopeType evalConst(Codeblock cb, Identifier name, ErrorLoc errorLoc) {
+		var fullIdent = name;
+		if (!cb.modules.constGatherer.exists(name)) {
+			fullIdent = null;
+			for (var namespace : cb.modules.generator.usings) {
+				var newIdent = new Identifier(namespace, name);
+				if (cb.modules.constGatherer.exists(newIdent)) {
+					fullIdent = newIdent;
+					break;
+				}
+			}
+		}
+
+		if (fullIdent == null) {
+			String strName = name.toString();
 			String closest = Utils.closestMatch(strName, cb.allVarNames().stream());
 
 			if (closest != null) {
 				Utils.error(errorLoc,
-					"Variable with name `" + strName + "` doesn't exist.",
+					"Variable or constant with name `" + strName + "` doesn't exist.",
 					"Did you mean `" + closest + "`?");
 			} else {
 				Utils.error(errorLoc,
@@ -75,21 +93,8 @@ public final class AtomEvaluator {
 			return null;
 		}
 
-		cb.varGet(strName);
-		return cb.varType(strName);
-	}
-
-	private static ScopeType evalConst(Codeblock cb, Identifier name, ErrorLoc errorLoc) {
-		if (!cb.modules.constGatherer.exists(name)) {
-			Utils.error(errorLoc,
-				"Constant with name `" + name.toString() + "` doesn't exist.",
-				"Did you spell the name wrong?");
-			cb.errored = true;
-			return null;
-		}
-
-		cb.add("mov rdi, QWORD [c_" + name.get() + "]");
-		return cb.modules.constGatherer.typeOf(name);
+		cb.add("mov rdi, QWORD [c_" + fullIdent.get() + "]");
+		return cb.modules.constGatherer.typeOf(fullIdent);
 	}
 
 	private static ScopeType evalLiteral(Codeblock cb, LiteralsContext ctx) {
