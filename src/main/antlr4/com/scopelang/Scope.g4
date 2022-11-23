@@ -38,6 +38,7 @@ innerStatement
 	;
 outerStatement
 	: function
+	| const
 	;
 topStatement
 	: ImportKeyword StringLiteral EndLine
@@ -106,6 +107,11 @@ assembly
 function
 	: FuncKeyword typeName Identifier '(' parameters ')' (codeblock | EndLine)
 	;
+const
+	: ConstKeyword typeName Identifier '=' literals EndLine
+	;
+
+// Top statements
 namespace
 	: NamespaceKeyword fullIdent EndLine
 	;
@@ -132,7 +138,7 @@ expr
 atom
 	: literals
 	| fullIdent '(' arguments ')'
-	| Identifier
+	| fullIdent
 	;
 literals
 	: IntegerLiteral
@@ -219,6 +225,7 @@ UsingKeyword: 'using';
 BreakKeyword: 'break';
 ContinueKeyword: 'continue';
 IsKeyword: 'is';
+ConstKeyword: 'const';
 
 // Primitive types
 VoidType: 'void';

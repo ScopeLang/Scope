@@ -86,4 +86,8 @@ public class TokenProcessor {
 			}
 		}
 	}
+
+	public String getMd5() {
+		return modules.generator.md5;
+	}
 }

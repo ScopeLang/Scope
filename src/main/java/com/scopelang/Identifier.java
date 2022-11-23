@@ -32,6 +32,10 @@ public class Identifier {
 		return rawName;
 	}
 
+	public boolean isSimple() {
+		return !rawName.contains("$");
+	}
+
 	@Override
 	public String toString() {
 		return toReadable(rawName);

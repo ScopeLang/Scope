@@ -1,8 +1,9 @@
 package com.scopelang.fasm;
 
+import com.scopelang.ScopeParser.LiteralsContext;
 import com.scopelang.ScopeType;
 import com.scopelang.Utils;
-import com.scopelang.ScopeParser.LiteralsContext;
+import com.scopelang.preprocess.TokenProcessor;
 
 public class LiteralEvaluator {
 	public static class LiteralOutput {
@@ -17,7 +18,7 @@ public class LiteralEvaluator {
 		}
 	}
 
-	public static LiteralOutput evalLiteral(Codeblock cb, LiteralsContext ctx) {
+	public static LiteralOutput evalLiteral(TokenProcessor processor, LiteralsContext ctx) {
 		if (ctx.StringLiteral() != null) {
 			// Get the string literal ID from the token process
 			String str = ctx.StringLiteral().getText();
@@ -27,9 +28,9 @@ public class LiteralEvaluator {
 				return new LiteralOutput(ScopeType.STR, "[s_empty]", true);
 			}
 
-			int index = cb.modules.tokenProcessor.extactedStrings.get(str);
+			int index = processor.extactedStrings.get(str);
 
-			String name = "s_" + cb.modules.generator.md5 + "_" + index;
+			String name = "s_" + processor.getMd5() + "_" + index;
 			return new LiteralOutput(ScopeType.STR, "[" + name + "]", true);
 		} else if (ctx.IntegerLiteral() != null) {
 			String strValue = ctx.IntegerLiteral().getText().replaceAll("'", "");
@@ -38,10 +39,9 @@ public class LiteralEvaluator {
 			try {
 				Long.parseLong(strValue);
 			} catch (Exception e) {
-				Utils.error(cb.locationOf(ctx.start),
+				Utils.error(
 					"Integer literal value must be between -9,223,372,036,854,775,808 and 9,223,372,036,854,775,807.",
-					"Try using a `long` for bigger values.");
-				cb.errored = true;
+					"Try using a `dec` for bigger values but more inaccurate values.");
 				return null;
 			}
 
@@ -73,7 +73,6 @@ public class LiteralEvaluator {
 			}
 		} else {
 			Utils.error("Unhandled literal node.", "This is probably not your fault.");
-			cb.errored = true;
 			return null;
 		}
 	}

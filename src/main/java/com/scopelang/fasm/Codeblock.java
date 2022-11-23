@@ -7,7 +7,6 @@ import java.util.Set;
 import java.util.Stack;
 
 import org.antlr.v4.runtime.ParserRuleContext;
-import org.antlr.v4.runtime.Token;
 
 import com.scopelang.*;
 import com.scopelang.ScopeParser.ExprContext;
@@ -175,7 +174,7 @@ public class Codeblock {
 
 	public boolean varExistsOrError(String name, ParserRuleContext ctx) {
 		if (!varExists(name)) {
-			Utils.error(modules.generator.locationOf(ctx.start),
+			Utils.error(modules.locationOf(ctx.start),
 				"Variable `" + name + "` was not defined yet in this scope.");
 			modules.generator.errored = true;
 			return false;
@@ -186,7 +185,7 @@ public class Codeblock {
 
 	public boolean varNotExistsOrError(String name, ParserRuleContext ctx) {
 		if (varExists(name)) {
-			Utils.error(modules.generator.locationOf(ctx.start),
+			Utils.error(modules.locationOf(ctx.start),
 				"Variable `" + name + "` was already defined in this scope.",
 				"Try to keep variable names concise and readable.");
 			modules.generator.errored = true;
@@ -279,10 +278,6 @@ public class Codeblock {
 	public void decreaseScope() {
 		currentScope--;
 		localVariables.entrySet().removeIf(kv -> kv.getValue().scope > currentScope);
-	}
-
-	public ErrorLoc locationOf(Token token) {
-		return modules.generator.locationOf(token);
 	}
 
 	@Override

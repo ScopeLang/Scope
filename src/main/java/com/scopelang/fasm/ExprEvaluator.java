@@ -426,7 +426,7 @@ public final class ExprEvaluator {
 			return type;
 		}
 
-		Utils.error(cb.locationOf(ctx.start),
+		Utils.error(cb.modules.locationOf(ctx.start),
 			"No operator `" + opType + "` that has the arguments `" + left + "` and `" + right + "`.");
 		cb.errored = true;
 		return null;

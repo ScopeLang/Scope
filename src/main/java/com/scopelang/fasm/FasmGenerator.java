@@ -6,17 +6,15 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.HashSet;
 
-import org.antlr.v4.runtime.Token;
 import org.apache.commons.io.IOUtils;
 
 import com.scopelang.*;
 import com.scopelang.ScopeParser.*;
-import com.scopelang.error.ErrorLoc;
 import com.scopelang.project.CompileTask;
 import com.scopelang.project.CompileTask.Mode;
 
 public class FasmGenerator extends ScopeBaseListener {
-	private FilePair sourceFile;
+	public FilePair sourceFile;
 	private PrintWriter writer;
 	private boolean libraryMode;
 
@@ -30,7 +28,7 @@ public class FasmGenerator extends ScopeBaseListener {
 	public Codeblock codeblock = null;
 
 	private boolean mainFound = false;
-	private String stringAppend = "";
+	private String segRead = "";
 	private boolean isFuncVoid = false;
 	private boolean returnFound = false;
 
@@ -104,6 +102,7 @@ public class FasmGenerator extends ScopeBaseListener {
 		}
 		write("");
 		writeStrings();
+		writeConsts();
 
 		if (!mainFound && !libraryMode) {
 			Utils.error("A `main` function was not found.",
@@ -129,7 +128,7 @@ public class FasmGenerator extends ScopeBaseListener {
 	}
 
 	private void writeImportMeta() {
-		for (var filePair : modules.globalImports) {
+		for (var filePair : modules.importManager.getAll()) {
 			var hash = Utils.hashOf(filePair.toFile());
 			write(";@IMPORT," + hash + "," + filePair.file.getPath());
 		}
@@ -142,7 +141,7 @@ public class FasmGenerator extends ScopeBaseListener {
 			String text = Utils.readFile(file);
 
 			// Append to constants
-			stringAppend += text.substring(text.indexOf(";@SEG_READ") + 10, text.length()).trim() + "\n";
+			segRead += text.substring(text.indexOf(";@SEG_READ") + 10, text.length()).trim() + "\n";
 
 			// Get the section of code
 			int start = text.indexOf(";@SEG_CODE") + 10;
@@ -173,7 +172,16 @@ public class FasmGenerator extends ScopeBaseListener {
 			write("\tdb " + bytes);
 		}
 
-		write(stringAppend);
+		write(segRead);
+	}
+
+	private void writeConsts() {
+		for (var constant : modules.constGatherer.getAllValues()) {
+			String name = "c_" + constant.getKey().get();
+			write(";@CONST," + constant.getKey().get() + "," +
+				constant.getValue().type.toString());
+			write(name + " " + constant.getValue().output);
+		}
 	}
 
 	public void write(String str) {
@@ -188,11 +196,6 @@ public class FasmGenerator extends ScopeBaseListener {
 	private void finish() {
 		writer.flush();
 		writer.close();
-	}
-
-	public ErrorLoc locationOf(Token token) {
-		return new ErrorLoc(sourceFile.toFile(), token.getLine(),
-			token.getCharPositionInLine() + 1);
 	}
 
 	@Override
@@ -213,7 +216,7 @@ public class FasmGenerator extends ScopeBaseListener {
 	public void enterFunction(FunctionContext ctx) {
 		// Check if main is in a namespace
 		if (ctx.Identifier().getText().equals("main") && namespace != null) {
-			Utils.error(locationOf(ctx.start),
+			Utils.error(modules.locationOf(ctx.start),
 				"The `main` function cannot be in a namespace.",
 				"Remove the `namespace` statement in this file.");
 			errored = true;
@@ -242,7 +245,7 @@ public class FasmGenerator extends ScopeBaseListener {
 		// Error if there are too many parameters
 		var params = ctx.parameters().parameter();
 		if (params.size() > Utils.ARG_REGS.length) {
-			Utils.error(locationOf(ctx.start),
+			Utils.error(modules.locationOf(ctx.start),
 				"A function cannot have more than " + Utils.ARG_REGS.length + " parmeters.",
 				"Having more than " + Utils.ARG_REGS.length + " parmeters is unreadable. Consider refactoring.");
 			errored = true;
@@ -255,7 +258,7 @@ public class FasmGenerator extends ScopeBaseListener {
 
 			// Check for duplicate params
 			if (codeblock.varExists(name)) {
-				Utils.error(locationOf(param.Identifier().getSymbol()),
+				Utils.error(modules.locationOf(param.Identifier().getSymbol()),
 					"Parameter `" + name + "` was already defined in the function contract.",
 					"Try to keep parameter names concise and readable.");
 				errored = true;
@@ -285,7 +288,7 @@ public class FasmGenerator extends ScopeBaseListener {
 
 		// Handle return error
 		if (!returnFound) {
-			Utils.error(locationOf(ctx.start),
+			Utils.error(modules.locationOf(ctx.start),
 				"A non-void function has no return statement.",
 				"Change the function return type to void or add a return statement like so:",
 				"ret <my-value-here>;");
@@ -328,7 +331,7 @@ public class FasmGenerator extends ScopeBaseListener {
 
 		// Check
 		if (!exprType.equals(type)) {
-			Utils.error(locationOf(ctx.start),
+			Utils.error(modules.locationOf(ctx.start),
 				"The declaration type (`" + type + "`) and expression (`" + exprType + "`) don't match.",
 				"Try changing the declaration type to `" + exprType + "`.");
 			errored = true;
@@ -356,7 +359,7 @@ public class FasmGenerator extends ScopeBaseListener {
 			var varType = codeblock.varType(ident);
 			for (int i = 0; i < ctx.LeftBracket().size(); i++) {
 				if (!varType.name.equals("array") || varType.generics == null) {
-					Utils.error(locationOf(ctx.start),
+					Utils.error(modules.locationOf(ctx.start),
 						"You can only use the index arrays for now.",
 						"Are you assigning to the wrong variable?");
 					errored = true;
@@ -368,7 +371,7 @@ public class FasmGenerator extends ScopeBaseListener {
 
 			// Check type
 			if (!varType.equals(exprType)) {
-				Utils.error(locationOf(ctx.start),
+				Utils.error(modules.locationOf(ctx.start),
 					"The array type type (`" + varType + "`) and expression (`" + exprType
 						+ "`) don't match.",
 					"Are you assigning to the wrong array?");
@@ -384,7 +387,7 @@ public class FasmGenerator extends ScopeBaseListener {
 
 				// Check index type
 				if (!indexType.equals(ScopeType.INT)) {
-					Utils.error(locationOf(ctx.start),
+					Utils.error(modules.locationOf(ctx.start),
 						"Indices must always be the type of `int`.",
 						"Change the value inside of the brackets to an `int`.");
 					errored = true;
@@ -418,7 +421,7 @@ public class FasmGenerator extends ScopeBaseListener {
 			// Check type
 			var varType = codeblock.varType(ident);
 			if (!exprType.equals(varType)) {
-				Utils.error(locationOf(ctx.start),
+				Utils.error(modules.locationOf(ctx.start),
 					"The variable type (`" + varType + "`) and expression (`" + exprType + "`) don't match.",
 					"Are you assigning to the wrong variable?");
 				errored = true;
@@ -436,7 +439,7 @@ public class FasmGenerator extends ScopeBaseListener {
 		if (ident.equalsStr("print")) {
 			var t = ExprEvaluator.eval(codeblock, ctx.arguments().expr(0));
 			if (!t.equals(ScopeType.STR)) {
-				Utils.error(locationOf(ctx.start),
+				Utils.error(modules.locationOf(ctx.start),
 					"Function `print` does not have an appropiate parameter list `" + t + "`.",
 					"Try changing the parameter types to `str`.");
 				errored = true;
@@ -444,14 +447,14 @@ public class FasmGenerator extends ScopeBaseListener {
 			}
 			codeblock.add("call print");
 		} else {
-			codeblock.addInvoke(ident, ctx.arguments().expr(), locationOf(ctx.start));
+			codeblock.addInvoke(ident, ctx.arguments().expr(), modules.locationOf(ctx.start));
 		}
 	}
 
 	@Override
 	public void exitReturn(ReturnContext ctx) {
 		if (isFuncVoid) {
-			Utils.error(locationOf(ctx.start),
+			Utils.error(modules.locationOf(ctx.start),
 				"Attemped to return a value in a void function.",
 				"Try changing the return type or removing this statement.");
 			errored = true;
@@ -548,7 +551,7 @@ public class FasmGenerator extends ScopeBaseListener {
 
 		// Check type
 		if (!startType.equals(type)) {
-			Utils.error(locationOf(ctx.start),
+			Utils.error(modules.locationOf(ctx.start),
 				"The variable type (`" + type + "`) and the range type (`" + startType + "`) don't match.");
 			errored = true;
 			return;
@@ -592,13 +595,13 @@ public class FasmGenerator extends ScopeBaseListener {
 				codeblock.add("pop rsi");
 
 				if (!stepType.equals(type)) {
-					Utils.error(locationOf(ctx.start),
+					Utils.error(modules.locationOf(ctx.start),
 						"The variable type (`" + type + "`) and the step type (`" + stepType + "`) don't match.");
 					errored = true;
 					return;
 				}
 			} else {
-				Utils.error(locationOf(ctx.start),
+				Utils.error(modules.locationOf(ctx.start),
 					"For loops where the type is not an `int` must have a step argument.",
 					"A step argument looks like this:",
 					"for (int i : 0..10 step 5) {",
@@ -613,7 +616,7 @@ public class FasmGenerator extends ScopeBaseListener {
 
 			// Error
 			if (result == null) {
-				Utils.error(locationOf(ctx.start),
+				Utils.error(modules.locationOf(ctx.start),
 					"No operator `+` that can be used for a for loop that has arguments `" + type + "` and `" + type
 						+ "`.");
 				errored = true;
@@ -636,7 +639,7 @@ public class FasmGenerator extends ScopeBaseListener {
 
 		// Check end type
 		if (!endType.equals(type)) {
-			Utils.error(locationOf(ctx.start),
+			Utils.error(modules.locationOf(ctx.start),
 				"The variable type (`" + type + "`) and the range type (`" + endType + "`) don't match.");
 			errored = true;
 			return;
@@ -647,7 +650,7 @@ public class FasmGenerator extends ScopeBaseListener {
 
 		// Error
 		if (result == null) {
-			Utils.error(locationOf(ctx.start),
+			Utils.error(modules.locationOf(ctx.start),
 				"No operator `<` that can be used for a for loop that has arguments `" + type + "` and `" + type
 					+ "`.");
 			errored = true;
@@ -702,7 +705,7 @@ public class FasmGenerator extends ScopeBaseListener {
 
 		// Error
 		if (result == null) {
-			Utils.error(locationOf(ctx.start),
+			Utils.error(modules.locationOf(ctx.start),
 				"No operator `" + operator + "` that has the arguments `" + left + "` and `" + right + "`.");
 			errored = true;
 			return;
@@ -711,7 +714,7 @@ public class FasmGenerator extends ScopeBaseListener {
 		// Check type
 		var varType = codeblock.varType(ident);
 		if (!result.equals(varType)) {
-			Utils.error(locationOf(ctx.start),
+			Utils.error(modules.locationOf(ctx.start),
 				"The variable type (`" + varType + "`) and expression (`" + varType + "`) don't match.",
 				"Are you op-assigning to the wrong variable?");
 			errored = true;
@@ -750,7 +753,7 @@ public class FasmGenerator extends ScopeBaseListener {
 	@Override
 	public void enterNamespace(NamespaceContext ctx) {
 		if (namespace != null) {
-			Utils.error(locationOf(ctx.start),
+			Utils.error(modules.locationOf(ctx.start),
 				"You can only have 1 namespace per file.",
 				"Try removing this namespace statement.");
 			errored = true;
@@ -766,7 +769,7 @@ public class FasmGenerator extends ScopeBaseListener {
 		var ident = new Identifier(ctx.fullIdent());
 
 		if (usings.contains(ident)) {
-			Utils.error(locationOf(ctx.start),
+			Utils.error(modules.locationOf(ctx.start),
 				"The namespace `" + ident.toString() + "` is already being used!",
 				"Try removing this using statement.");
 			errored = true;
@@ -786,7 +789,7 @@ public class FasmGenerator extends ScopeBaseListener {
 		var label = codeblock.peekLoopLabelInfo(size - 1);
 
 		if (label == null) {
-			Utils.error(locationOf(ctx.start),
+			Utils.error(modules.locationOf(ctx.start),
 				"Attempted to use a break statement outside of a loop.",
 				"Try removing this break statement or removing a nested break.");
 			codeblock.errored = true;
@@ -805,7 +808,7 @@ public class FasmGenerator extends ScopeBaseListener {
 		var label = codeblock.peekLoopLabelInfo();
 
 		if (label == null) {
-			Utils.error(locationOf(ctx.start),
+			Utils.error(modules.locationOf(ctx.start),
 				"Attempted to use a continue statement outside of a loop.",
 				"Try removing this continue statement.");
 			codeblock.errored = true;

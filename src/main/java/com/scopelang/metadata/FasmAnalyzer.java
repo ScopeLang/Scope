@@ -38,6 +38,7 @@ public class FasmAnalyzer {
 	public String hash = null;
 	public String source = null;
 	public HashMap<Identifier, FuncInfo> functions = new HashMap<>();
+	public HashMap<Identifier, ScopeType> constants = new HashMap<>();
 
 	public FasmAnalyzer(FilePair sourceFile) {
 		this.sourceFile = sourceFile;
@@ -115,6 +116,28 @@ public class FasmAnalyzer {
 			var funcInfo = new FuncInfo(ScopeType.parseFromString(data[1]),
 				args.toArray(ScopeType[]::new));
 			functions.put(new Identifier(data[0]), funcInfo);
+		}
+
+		// Analyze constants
+		for (int i = text.indexOf(";@CONST"); i != -1; i = text.indexOf(";@CONST", i + 1)) {
+			// Skip over ";@CONST" and the ","
+			i += 8;
+
+			// Get the index of the next ","
+			int j = text.indexOf(",", i);
+
+			// Get the name
+			String name = text.substring(i, j);
+			i = j + 1;
+
+			// Get the index of the newline
+			j = text.indexOf("\n", i);
+
+			// Get the type
+			var type = ScopeType.parseFromString(text.substring(i, j));
+
+			// Add
+			constants.put(new Identifier(name), type);
 		}
 	}
 }

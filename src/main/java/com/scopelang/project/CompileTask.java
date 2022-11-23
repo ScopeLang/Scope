@@ -37,13 +37,16 @@ public class CompileTask {
 		Modules modules = new Modules(this);
 		var errorHandler = new ErrorHandler(file);
 
-		// Preprocess
+		// Init modules
 		modules.funcGatherer = new FuncGatherer();
+		modules.constGatherer = new ConstGatherer(modules);
 		modules.importManager = new ImportManager(modules);
 		modules.preprocessor = new Preprocessor(file);
+		modules.generator = new FasmGenerator(source, output.toFile(),
+			modules, mode != Mode.MAIN);
 
 		// Add `stdlib:Core` automatically (if stdlib is included)
-		if (xml.libraryInfoByName("stdlib") != null) {
+		if (xml.libraryInfoByName("stdlib") != null && mode == Mode.MAIN) {
 			modules.importManager.addRaw("stdlib:Core", xml);
 		}
 
@@ -80,10 +83,9 @@ public class CompileTask {
 
 		// Gather info
 		ParseTreeWalker.DEFAULT.walk(modules.funcGatherer, tree);
+		ParseTreeWalker.DEFAULT.walk(modules.constGatherer, tree);
 
 		// Generate
-		modules.generator = new FasmGenerator(source, output.toFile(),
-			modules, mode != Mode.MAIN);
 		modules.generator.insertHeader();
 		ParseTreeWalker.DEFAULT.walk(modules.generator, tree);
 		modules.generator.finishGen();
@@ -130,6 +132,11 @@ public class CompileTask {
 
 			for (var func : analyzer.functions.entrySet()) {
 				modules.funcGatherer.addLibFunc(func.getKey(), func.getValue());
+			}
+
+			for (var constant : analyzer.constants.entrySet()) {
+				modules.constGatherer.addLibConst(constant.getKey(),
+					constant.getValue());
 			}
 
 			var newImports = new ArrayList<FilePair>();

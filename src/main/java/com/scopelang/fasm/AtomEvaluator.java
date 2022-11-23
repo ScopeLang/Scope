@@ -1,11 +1,10 @@
 package com.scopelang.fasm;
 
-import org.antlr.v4.runtime.Token;
-
 import com.scopelang.Identifier;
 import com.scopelang.ScopeType;
 import com.scopelang.Utils;
 import com.scopelang.ScopeParser.*;
+import com.scopelang.error.ErrorLoc;
 
 public final class AtomEvaluator {
 	private AtomEvaluator() {
@@ -18,14 +17,16 @@ public final class AtomEvaluator {
 		} else if (ctx.fullIdent() != null && ctx.LeftParen() != null && ctx.RightParen() != null) {
 			// Handle invoke
 			var name = new Identifier(ctx.fullIdent());
-			name = cb.addInvoke(name, ctx.arguments().expr(), cb.locationOf(ctx.start));
+			name = cb.addInvoke(name, ctx.arguments().expr(),
+				cb.modules.locationOf(ctx.start));
+
 			if (name == null) {
 				return null;
 			} else {
 				var returnType = cb.modules.funcGatherer.returnTypeOf(name);
 
 				if (returnType.isVoid()) {
-					Utils.error(cb.locationOf(ctx.start),
+					Utils.error(cb.modules.locationOf(ctx.start),
 						"Attempted to get the return value of a void function.",
 						"Void functions don't return any value and therefore cannot be used in an expression.");
 					cb.errored = true;
@@ -34,10 +35,15 @@ public final class AtomEvaluator {
 
 				return returnType;
 			}
-		} else if (ctx.Identifier() != null) {
-			// Handle variables
-			String name = ctx.Identifier().getText();
-			return evalVariable(cb, name, ctx.Identifier().getSymbol());
+		} else if (ctx.fullIdent() != null) {
+			// Handle variables and consts
+			var errorLoc = cb.modules.locationOf(ctx.fullIdent().start);
+			var ident = new Identifier(ctx.fullIdent());
+			if (ident.isSimple()) {
+				return evalVariable(cb, ident, errorLoc);
+			} else {
+				return evalConst(cb, ident, errorLoc);
+			}
 		} else {
 			Utils.error("Unhandled atom node.", "This is probably not your fault.");
 			cb.errored = true;
@@ -45,17 +51,22 @@ public final class AtomEvaluator {
 		}
 	}
 
-	private static ScopeType evalVariable(Codeblock cb, String name, Token symbol) {
-		if (!cb.varExists(name)) {
-			String closest = Utils.closestMatch(name, cb.allVarNames().stream());
+	private static ScopeType evalVariable(Codeblock cb, Identifier name, ErrorLoc errorLoc) {
+		var strName = name.toString();
+		if (!cb.varExists(strName)) {
+			if (cb.modules.constGatherer.exists(name)) {
+				return evalConst(cb, name, errorLoc);
+			}
+
+			String closest = Utils.closestMatch(strName, cb.allVarNames().stream());
 
 			if (closest != null) {
-				Utils.error(cb.locationOf(symbol),
-					"Variable with name `" + name + "` doesn't exist.",
+				Utils.error(errorLoc,
+					"Variable with name `" + strName + "` doesn't exist.",
 					"Did you mean `" + closest + "`?");
 			} else {
-				Utils.error(cb.locationOf(symbol),
-					"Variable with name `" + name + "` doesn't exist.",
+				Utils.error(errorLoc,
+					"Variable with name `" + strName + "` doesn't exist.",
 					"You can define a variable like so:",
 					"string " + name + " = \"Test\";");
 			}
@@ -64,12 +75,25 @@ public final class AtomEvaluator {
 			return null;
 		}
 
-		cb.varGet(name);
-		return cb.varType(name);
+		cb.varGet(strName);
+		return cb.varType(strName);
+	}
+
+	private static ScopeType evalConst(Codeblock cb, Identifier name, ErrorLoc errorLoc) {
+		if (!cb.modules.constGatherer.exists(name)) {
+			Utils.error(errorLoc,
+				"Constant with name `" + name.toString() + "` doesn't exist.",
+				"Did you spell the name wrong?");
+			cb.errored = true;
+			return null;
+		}
+
+		cb.add("mov rdi, QWORD [c_" + name.get() + "]");
+		return cb.modules.constGatherer.typeOf(name);
 	}
 
 	private static ScopeType evalLiteral(Codeblock cb, LiteralsContext ctx) {
-		var output = LiteralEvaluator.evalLiteral(cb, ctx);
+		var output = LiteralEvaluator.evalLiteral(cb.modules.tokenProcessor, ctx);
 		if (output == null) {
 			return null;
 		}
