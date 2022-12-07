@@ -121,6 +121,26 @@ input:
 	pop rsi, rdx, rcx
 	ret
 
+; args: rdi seconds, rsi nanoseconds
+sleep:
+	push rsi, rdi
+	; Add data to request buffer
+	mov rax, QWORD [curpkg]
+	mov QWORD [rax], rdi
+	mov QWORD [rax + 8], rsi
+	; Run syscall
+	mov rsi, 0              ; Remainder buffer (NULL)
+	mov rdi, QWORD [curpkg] ; Request buffer
+	mov rax, 35             ; sys_nanosleep
+	syscall
+	; Clear request buffer
+	mov rax, QWORD [curpkg]
+	mov QWORD [rax], 0
+	mov QWORD [rax + 8], 0
+	; End
+	pop rdi, rsi
+	ret
+
 ; args: rdi from, rsi to, rdx amount
 copy:
 	cmp rdx, 0
