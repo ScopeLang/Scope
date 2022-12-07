@@ -453,17 +453,26 @@ public class FasmGenerator extends ScopeBaseListener {
 
 	@Override
 	public void exitReturn(ReturnContext ctx) {
-		if (isFuncVoid) {
+		if (isFuncVoid && ctx.expr() != null) {
 			Utils.error(modules.locationOf(ctx.start),
 				"Attemped to return a value in a void function.",
 				"Try changing the return type or removing this statement.");
 			errored = true;
 			return;
+		} else if (!isFuncVoid && ctx.expr() == null) {
+			Utils.error(modules.locationOf(ctx.start),
+				"Attemped to return without a value in a non-void function.",
+				"Try adding an expression after `ret`.");
+			errored = true;
+			return;
 		}
 
-		returnFound = true;
+		if (!isFuncVoid) {
+			returnFound = true;
 
-		ExprEvaluator.eval(codeblock, ctx.expr());
+			ExprEvaluator.eval(codeblock, ctx.expr());
+		}
+
 		codeblock.addReturn();
 	}
 

@@ -76,7 +76,7 @@ opAssign
 	| Identifier '%=' expr
 	;
 return
-	: ReturnKeyword expr
+	: ReturnKeyword expr?
 	;
 breakpoint
 	: BreakpointKeyword
