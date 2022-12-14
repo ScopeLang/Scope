@@ -51,4 +51,8 @@ public class ObjectGatherer extends AbstractGatherer {
 	public Set<Entry<Identifier, ScopeObject>> getAllValues() {
 		return objects.entrySet();
 	}
+
+	public void addLibObject(Identifier name, ScopeObject info) {
+		objects.put(name, info);
+	}
 }

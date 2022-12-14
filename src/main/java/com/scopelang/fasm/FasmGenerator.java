@@ -59,6 +59,7 @@ public class FasmGenerator extends ScopeBaseListener {
 			writeImportMeta();
 			write("");
 			write(";@SEG_CODE");
+			writeObjects();
 			return;
 		}
 
@@ -89,11 +90,9 @@ public class FasmGenerator extends ScopeBaseListener {
 			Utils.forceExit();
 		}
 
+		// Keep in mind we return if we are in library mode
 		writeObjects();
-
-		if (!libraryMode) {
-			writeImports();
-		}
+		writeImports();
 	}
 
 	public void finishGen() {

@@ -141,6 +141,11 @@ public class CompileTask {
 					constant.getValue());
 			}
 
+			for (var object : analyzer.objects.entrySet()) {
+				modules.objectGatherer.addLibObject(object.getKey(),
+					object.getValue());
+			}
+
 			var newImports = new ArrayList<FilePair>();
 			for (var importMeta : analyzer.imports) {
 				if (modules.globalImports.contains(importMeta.file)) {

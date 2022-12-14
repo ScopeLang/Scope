@@ -7,6 +7,7 @@ import java.util.Objects;
 
 import com.scopelang.*;
 import com.scopelang.preprocess.*;
+import com.scopelang.preprocess.ObjectGatherer.ScopeObject;
 
 public class FasmAnalyzer {
 	public static class ImportMeta {
@@ -39,6 +40,7 @@ public class FasmAnalyzer {
 	public String source = null;
 	public HashMap<Identifier, FuncInfo> functions = new HashMap<>();
 	public HashMap<Identifier, ScopeType> constants = new HashMap<>();
+	public HashMap<Identifier, ScopeObject> objects = new HashMap<>();
 
 	public FasmAnalyzer(FilePair sourceFile) {
 		this.sourceFile = sourceFile;
@@ -138,6 +140,61 @@ public class FasmAnalyzer {
 
 			// Add
 			constants.put(new Identifier(name), type);
+		}
+
+		// Analyze objects
+		ScopeObject currentObj = null;
+		Identifier objName = null;
+		int start = 0;
+		int end = 0;
+		while (true) {
+			if (currentObj == null) {
+				start = text.indexOf(";@OBJ_START", start + 1);
+				if (start == -1) {
+					break;
+				}
+
+				// Get the index of the newline
+				int j = text.indexOf("\n", start + 12);
+				objName = new Identifier(text.substring(start + 12, j));
+
+				end = text.indexOf(";@OBJ_END", start);
+				if (end == -1) {
+					break;
+				}
+
+				currentObj = new ScopeObject();
+			} else {
+				// Parse all fields
+				for (int i = text.indexOf(";@OBJ_FIELD", start); i != -1; i = text.indexOf(";@OBJ_FIELD", i + 1)) {
+					if (i > end) {
+						break;
+					}
+
+					// Skip over ";@OBJ_FIELD" and the ","
+					i += 12;
+
+					// Get the index of the next ","
+					int j = text.indexOf(",", i);
+
+					// Get the name
+					String name = text.substring(i, j);
+					i = j + 1;
+
+					// Get the index of the newline
+					j = text.indexOf("\n", i);
+
+					// Get the type
+					var type = ScopeType.parseFromString(text.substring(i, j));
+
+					// Add field
+					currentObj.fields.add(name);
+					currentObj.fieldTypes.add(type);
+				}
+
+				objects.put(objName, currentObj);
+				currentObj = null;
+			}
 		}
 	}
 }

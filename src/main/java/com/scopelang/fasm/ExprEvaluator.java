@@ -274,6 +274,10 @@ public final class ExprEvaluator {
 			var type = ScopeType.fromTypeNameCtx(cb.modules,
 				ctx.objectInit().typeName());
 
+			if (type == null) {
+				return null;
+			}
+
 			if (type.name.equals("array")) {
 				var exprType = eval(cb, ctx.objectInit().arguments().expr(0));
 
@@ -371,9 +375,13 @@ public final class ExprEvaluator {
 		} else if (ctx.Or() != null) {
 			opType = "|";
 		} else if (ctx.Access() != null) {
-			// Temporary
 			String access = ctx.Identifier().getText();
+
 			var left = eval(cb, ctx.expr(0));
+			if (left == null) {
+				return null;
+			}
+
 			if (left.equals(ScopeType.STR) && access.equals("length")) {
 				cb.add("mov rdi, QWORD [rdi]");
 				return ScopeType.INT;
