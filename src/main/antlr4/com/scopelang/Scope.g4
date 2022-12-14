@@ -39,6 +39,7 @@ innerStatement
 outerStatement
 	: function
 	| const
+	| object
 	;
 topStatement
 	: ImportKeyword StringLiteral EndLine
@@ -66,6 +67,7 @@ declare
 	;
 assign
 	: Identifier ('[' expr ']')* '=' expr
+	| Identifier '.' Identifier '=' expr
 	;
 opAssign
 	: Identifier '^=' expr
@@ -110,6 +112,9 @@ function
 const
 	: ConstKeyword typeName Identifier '=' literals EndLine
 	;
+object
+	: ObjectKeyword Identifier '{' (objectField)* '}'
+	;
 
 // Top statements
 namespace
@@ -117,6 +122,11 @@ namespace
 	;
 using
 	: UsingKeyword fullIdent EndLine
+	;
+
+// Other statements
+objectField
+	: typeName Identifier '=' expr EndLine
 	;
 
 // Expressions
@@ -147,10 +157,10 @@ literals
 	| BooleanLiteral
 	;
 arrayInit
-	: typeName '{' arguments '}'
+	: NewKeyword typeName '{' arguments '}'
 	;
 objectInit
-	: typeName '(' arguments ')'
+	: NewKeyword typeName '(' arguments ')'
 	;
 
 fullIdent
@@ -166,6 +176,7 @@ primitiveType
 typeName
 	: typeName '[' ']'
 	| primitiveType
+	| fullIdent
 	;
 
 // =============== //
@@ -226,6 +237,8 @@ BreakKeyword: 'break';
 ContinueKeyword: 'continue';
 IsKeyword: 'is';
 ConstKeyword: 'const';
+ObjectKeyword: 'object';
+NewKeyword: 'new';
 
 // Primitive types
 VoidType: 'void';

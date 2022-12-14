@@ -89,6 +89,8 @@ public class FasmGenerator extends ScopeBaseListener {
 			Utils.forceExit();
 		}
 
+		writeObjects();
+
 		if (!libraryMode) {
 			writeImports();
 		}
@@ -184,6 +186,20 @@ public class FasmGenerator extends ScopeBaseListener {
 		}
 	}
 
+	private void writeObjects() {
+		for (var object : modules.objectGatherer.getAllValues()) {
+			write(";@OBJ_START," + object.getKey().get());
+
+			for (int i = 0; i < object.getValue().fields.size(); i++) {
+				write("\t;@OBJ_FIELD," + object.getValue().fields.get(i) +
+					"," + object.getValue().fieldTypes.get(i));
+			}
+
+			write(";@OBJ_END");
+			write("");
+		}
+	}
+
 	public void write(String str) {
 		if (str.isEmpty()) {
 			writer.println();
@@ -224,12 +240,14 @@ public class FasmGenerator extends ScopeBaseListener {
 		}
 
 		Identifier ident = new Identifier(namespace, ctx.Identifier().getText());
-		var returnType = ScopeType.fromTypeNameCtx(ctx.typeName());
+		var returnType = ScopeType.fromTypeNameCtx(modules,
+			ctx.typeName());
 
 		// Generate metadata
 		String meta = ";@FUNC," + ident.get() + "," + returnType;
 		for (var param : ctx.parameters().parameter()) {
-			meta += "," + ScopeType.fromTypeNameCtx(param.typeName());
+			meta += "," + ScopeType.fromTypeNameCtx(modules,
+				param.typeName());
 		}
 
 		// Write function header
@@ -266,7 +284,8 @@ public class FasmGenerator extends ScopeBaseListener {
 			}
 
 			// Set variable
-			var type = ScopeType.fromTypeNameCtx(param.typeName());
+			var type = ScopeType.fromTypeNameCtx(modules,
+				param.typeName());
 			codeblock.appendArgument(name, Utils.ARG_REGS[i], type);
 		}
 
@@ -322,7 +341,8 @@ public class FasmGenerator extends ScopeBaseListener {
 
 		// Get value and type
 		var exprType = ExprEvaluator.eval(codeblock, ctx.expr());
-		var type = ScopeType.fromTypeNameCtx(ctx.typeName());
+		var type = ScopeType.fromTypeNameCtx(modules,
+			ctx.typeName());
 
 		// Discard if error
 		if (exprType == null) {
@@ -344,14 +364,60 @@ public class FasmGenerator extends ScopeBaseListener {
 
 	@Override
 	public void exitAssign(AssignContext ctx) {
-		String ident = ctx.Identifier().getText();
+		String ident = ctx.Identifier(0).getText();
 
 		// Error if the local variable doesn't exist
 		if (!codeblock.varExistsOrError(ident, ctx)) {
 			return;
 		}
 
-		if (ctx.LeftBracket().size() > 0) {
+		if (ctx.Access() != null) {
+			String access = ctx.Identifier(1).getText();
+
+			// Get type
+			var varType = codeblock.varType(ident);
+			if (!modules.objectGatherer.objectExists(new Identifier(varType.name))) {
+				Utils.error(modules.locationOf(ctx.start),
+					"Object type `" + varType.name + "` has no fields.",
+					"Are you accessing the wrong variable?");
+				errored = true;
+				return;
+			}
+
+			var objInfo = modules.objectGatherer
+				.getObjectInfo(new Identifier(varType.name));
+
+			// Check field name
+			if (!objInfo.fields.contains(access)) {
+				Utils.error(modules.locationOf(ctx.start),
+					"Object type `" + varType.name + "` has no field named `" + access + "`.",
+					"Are you accessing the wrong variable?");
+				errored = true;
+				return;
+			}
+
+			int fieldIndex = objInfo.fields.indexOf(access);
+			var fieldType = objInfo.fieldTypes.get(fieldIndex);
+
+			// Get value and type
+			var exprType = ExprEvaluator.eval(codeblock, ctx.expr(0));
+			codeblock.add("push rdi");
+
+			// Check type
+			if (!exprType.equals(fieldType)) {
+				Utils.error(modules.locationOf(ctx.start),
+					"The field type (`" + fieldType + "`) and expression (`" + exprType + "`) don't match.",
+					"Are you assigning to the wrong field?");
+				errored = true;
+				return;
+			}
+
+			// Assign to field
+			codeblock.varGet(ident);
+			codeblock.add("lea rdi, [rdi + " + (16 + fieldIndex * 8) + "]");
+			codeblock.add("pop rsi");
+			codeblock.add("mov QWORD [rdi], rsi");
+		} else if (ctx.LeftBracket().size() > 0) {
 			// Get value and type
 			var exprType = ExprEvaluator.eval(codeblock, ctx.expr(ctx.LeftBracket().size()));
 
@@ -546,7 +612,8 @@ public class FasmGenerator extends ScopeBaseListener {
 	@Override
 	public void enterFor(ForContext ctx) {
 		String ident = ctx.Identifier().getText();
-		var type = ScopeType.fromTypeNameCtx(ctx.typeName());
+		var type = ScopeType.fromTypeNameCtx(modules,
+			ctx.typeName());
 
 		// Error if the local variable already exists
 		if (!codeblock.varNotExistsOrError(ident, ctx)) {
@@ -584,7 +651,8 @@ public class FasmGenerator extends ScopeBaseListener {
 	@Override
 	public void exitFor(ForContext ctx) {
 		String ident = ctx.Identifier().getText();
-		var type = ScopeType.fromTypeNameCtx(ctx.typeName());
+		var type = ScopeType.fromTypeNameCtx(modules,
+			ctx.typeName());
 		var label = codeblock.popLabelInfo();
 
 		codeblock.indent--;

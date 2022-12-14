@@ -18,6 +18,7 @@ public class Modules {
 	public ScopeParser parser;
 	public FuncGatherer funcGatherer;
 	public ConstGatherer constGatherer;
+	public ObjectGatherer objectGatherer;
 	public FasmGenerator generator;
 	public CompileTask task;
 

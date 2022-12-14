@@ -4,20 +4,14 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.stream.Stream;
 
-import com.scopelang.Identifier;
-import com.scopelang.ScopeBaseListener;
-import com.scopelang.ScopeType;
-import com.scopelang.Utils;
+import com.scopelang.*;
 import com.scopelang.ScopeParser.*;
 
-public class FuncGatherer extends ScopeBaseListener {
-	private Identifier namespace = null;
-
+public class FuncGatherer extends AbstractGatherer {
 	private HashMap<Identifier, FuncInfo> functions = new HashMap<>();
 
-	@Override
-	public void enterNamespace(NamespaceContext ctx) {
-		namespace = new Identifier(ctx.fullIdent());
+	public FuncGatherer(Modules modules) {
+		super(modules);
 	}
 
 	@Override
@@ -30,12 +24,14 @@ public class FuncGatherer extends ScopeBaseListener {
 		}
 
 		// Get return type
-		var type = ScopeType.fromTypeNameCtx(ctx.typeName());
+		var type = ScopeType.fromTypeNameCtx(modules,
+			ctx.typeName());
 
 		// Get argument types
 		ArrayList<ScopeType> args = new ArrayList<>();
 		for (var param : ctx.parameters().parameter()) {
-			args.add(ScopeType.fromTypeNameCtx(param.typeName()));
+			args.add(ScopeType.fromTypeNameCtx(modules,
+				param.typeName()));
 		}
 
 		// Error if the function already exists

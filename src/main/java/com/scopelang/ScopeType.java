@@ -58,12 +58,25 @@ public class ScopeType {
 		return name.equals(other.name) && Arrays.equals(generics, other.generics);
 	}
 
-	public static ScopeType fromTypeNameCtx(TypeNameContext ctx) {
+	public static ScopeType fromTypeNameCtx(Modules modules, TypeNameContext ctx) {
 		if (ctx.primitiveType() != null) {
 			return new ScopeType(ctx.primitiveType().getText());
+		} else if (ctx.fullIdent() != null) {
+			var objName = new Identifier(ctx.fullIdent());
+
+			if (!modules.objectGatherer.objectExists(objName)) {
+				Utils.error("Object with name `" + objName + "` doesn't exist.",
+					"You can declare an object like so:",
+					"object MyObject {",
+					"\tint myVar = 0;",
+					"}");
+				return null;
+			}
+
+			return new ScopeType(objName.get());
 		} else {
 			return new ScopeType("array", new ScopeType[] {
-				fromTypeNameCtx(ctx.typeName())
+				fromTypeNameCtx(modules, ctx.typeName())
 			});
 		}
 	}

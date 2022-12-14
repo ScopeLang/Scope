@@ -9,26 +9,18 @@ import com.scopelang.ScopeParser.*;
 import com.scopelang.fasm.LiteralEvaluator;
 import com.scopelang.fasm.LiteralEvaluator.LiteralOutput;
 
-public class ConstGatherer extends ScopeBaseListener {
-	private Modules modules = null;
-	private Identifier namespace = null;
-
+public class ConstGatherer extends AbstractGatherer {
 	private HashMap<Identifier, ScopeType> constants = new HashMap<>();
 	private HashMap<Identifier, LiteralEvaluator.LiteralOutput> constantValues = new HashMap<>();
 
 	public ConstGatherer(Modules modules) {
-		this.modules = modules;
-	}
-
-	@Override
-	public void enterNamespace(NamespaceContext ctx) {
-		namespace = new Identifier(ctx.fullIdent());
+		super(modules);
 	}
 
 	@Override
 	public void enterConst(ConstContext ctx) {
 		Identifier ident = new Identifier(namespace, ctx.Identifier().getText());
-		var type = ScopeType.fromTypeNameCtx(ctx.typeName());
+		var type = ScopeType.fromTypeNameCtx(modules, ctx.typeName());
 
 		if (constants.containsKey(ident)) {
 			Utils.error(modules.locationOf(ctx.start),

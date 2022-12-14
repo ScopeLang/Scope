@@ -38,8 +38,9 @@ public class CompileTask {
 		var errorHandler = new ErrorHandler(file);
 
 		// Init modules
-		modules.funcGatherer = new FuncGatherer();
+		modules.funcGatherer = new FuncGatherer(modules);
 		modules.constGatherer = new ConstGatherer(modules);
+		modules.objectGatherer = new ObjectGatherer(modules);
 		modules.importManager = new ImportManager(modules);
 		modules.preprocessor = new Preprocessor(file);
 		modules.generator = new FasmGenerator(source, output.toFile(),
@@ -82,8 +83,9 @@ public class CompileTask {
 		}
 
 		// Gather info
-		ParseTreeWalker.DEFAULT.walk(modules.funcGatherer, tree);
+		ParseTreeWalker.DEFAULT.walk(modules.objectGatherer, tree);
 		ParseTreeWalker.DEFAULT.walk(modules.constGatherer, tree);
+		ParseTreeWalker.DEFAULT.walk(modules.funcGatherer, tree);
 
 		// Generate
 		modules.generator.insertHeader();

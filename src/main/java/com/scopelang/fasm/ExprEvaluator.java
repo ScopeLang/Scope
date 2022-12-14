@@ -1,6 +1,7 @@
 package com.scopelang.fasm;
 
 import com.scopelang.ScopeParser.ExprContext;
+import com.scopelang.Identifier;
 import com.scopelang.ScopeType;
 import com.scopelang.Utils;
 
@@ -231,7 +232,8 @@ public final class ExprEvaluator {
 			return eval(cb, ctx.expr(0));
 		} else if (ctx.arrayInit() != null) {
 			// Handle array initializers
-			var type = ScopeType.fromTypeNameCtx(ctx.arrayInit().typeName());
+			var type = ScopeType.fromTypeNameCtx(cb.modules,
+				ctx.arrayInit().typeName());
 
 			if (!type.name.equals("array")) {
 				Utils.error("Attempted to initialize array on non-array type.",
@@ -269,28 +271,33 @@ public final class ExprEvaluator {
 			return type;
 		} else if (ctx.objectInit() != null) {
 			// Handle object initializers
-			var type = ScopeType.fromTypeNameCtx(ctx.objectInit().typeName());
+			var type = ScopeType.fromTypeNameCtx(cb.modules,
+				ctx.objectInit().typeName());
 
-			if (!type.name.equals("array")) {
-				Utils.error("Object initializers can only be used on arrays for now.");
-				cb.errored = true;
-				return null;
+			if (type.name.equals("array")) {
+				var exprType = eval(cb, ctx.objectInit().arguments().expr(0));
+
+				if (!exprType.equals(ScopeType.INT)) {
+					Utils.error("Array initializers must have one int in their arguments",
+						"Try changing the argument type to an int.");
+					cb.errored = true;
+					return null;
+				}
+
+				cb.add("mov rsi, rdi");
+				cb.add("mov rdi, QWORD [curpkg]");
+				cb.add("imul rsi, 8");
+				cb.add("mov QWORD [rdi], rsi");
+				cb.add("add rsi, 16");
+				cb.add("add QWORD [curpkg], rsi");
+			} else {
+				var typeIdent = new Identifier(type.name);
+				var obj = cb.modules.objectGatherer.getObjectInfo(typeIdent);
+
+				cb.add("mov rdi, QWORD [curpkg]");
+				cb.add("mov QWORD [rdi], " + obj.fields.size() * 8);
+				cb.add("add QWORD [curpkg], " + (obj.fields.size() * 8 + 16));
 			}
-
-			var exprType = eval(cb, ctx.objectInit().arguments().expr(0));
-
-			if (!exprType.equals(ScopeType.INT)) {
-				Utils.error("Object initializers can only have one int for now.");
-				cb.errored = true;
-				return null;
-			}
-
-			cb.add("mov rsi, rdi");
-			cb.add("mov rdi, QWORD [curpkg]");
-			cb.add("imul rsi, 8");
-			cb.add("mov QWORD [rdi], rsi");
-			cb.add("add rsi, 16");
-			cb.add("add QWORD [curpkg], rsi");
 
 			return type;
 		} else {
@@ -365,21 +372,43 @@ public final class ExprEvaluator {
 			opType = "|";
 		} else if (ctx.Access() != null) {
 			// Temporary
+			String access = ctx.Identifier().getText();
 			var left = eval(cb, ctx.expr(0));
-			if (left.equals(ScopeType.STR) && ctx.Identifier().getText().equals("length")) {
+			if (left.equals(ScopeType.STR) && access.equals("length")) {
 				cb.add("mov rdi, QWORD [rdi]");
 				return ScopeType.INT;
-			} else if (left.name.equals("array") && ctx.Identifier().getText().equals("length")) {
+			} else if (left.name.equals("array") && access.equals("length")) {
 				cb.add("mov rdi, QWORD [rdi]");
 				cb.add("lea rax, [rdi + 7]");
 				cb.add("test rdi, rdi");
 				cb.add("cmovs rdi, rax");
 				cb.add("sar rdi, 3");
 				return ScopeType.INT;
-			}
+			} else {
+				var objIdent = new Identifier(left.name);
+				if (!cb.modules.objectGatherer.objectExists(objIdent)) {
+					Utils.error(cb.modules.locationOf(ctx.start),
+						"Object type `" + objIdent + "` has no fields.",
+						"Are you accessing the wrong variable?");
+					cb.errored = true;
+					return null;
+				}
 
-			Utils.error("Can only use `.` with `length` on strings and arrays for now.");
-			return null;
+				var objInfo = cb.modules.objectGatherer.getObjectInfo(objIdent);
+				if (!objInfo.fields.contains(access)) {
+					Utils.error(cb.modules.locationOf(ctx.start),
+						"Object type `" + objIdent + "` has no field named `" + access + "`.",
+						"Are you accessing the wrong variable?");
+					cb.errored = true;
+					return null;
+				}
+
+				int fieldIndex = objInfo.fields.indexOf(access);
+
+				cb.add("mov rdi, QWORD [rdi + " + (16 + fieldIndex * 8) + "]");
+
+				return objInfo.fieldTypes.get(fieldIndex);
+			}
 		}
 
 		// Get right (if not unary)
@@ -396,7 +425,8 @@ public final class ExprEvaluator {
 
 		// If cast, get the right type
 		if (opType.equals("->")) {
-			right = ScopeType.fromTypeNameCtx(ctx.typeName());
+			right = ScopeType.fromTypeNameCtx(cb.modules,
+				ctx.typeName());
 		}
 
 		// Get left (only if unary)
