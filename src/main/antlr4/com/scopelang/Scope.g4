@@ -134,12 +134,12 @@ expr
 	: expr '.' Identifier
 	| expr '[' expr ']'
 	| ('!' | '-') expr
-	| expr '->' typeName
 	| expr '^' expr
 	| expr ('*' | '/' | '%') expr
 	| expr ('+' | '-') expr
 	| expr ('==' | '!=' | '>' | '<' | '>=' | '<=' | IsKeyword) expr
 	| expr ('&' | '|') expr
+	| expr '->' typeName
 	| '(' expr ')'
 	| arrayInit
 	| objectInit
