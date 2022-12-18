@@ -137,9 +137,9 @@ expr
 	| expr '^' expr
 	| expr ('*' | '/' | '%') expr
 	| expr ('+' | '-') expr
+	| expr '->' typeName
 	| expr ('==' | '!=' | '>' | '<' | '>=' | '<=' | IsKeyword) expr
 	| expr ('&' | '|') expr
-	| expr '->' typeName
 	| '(' expr ')'
 	| arrayInit
 	| objectInit
