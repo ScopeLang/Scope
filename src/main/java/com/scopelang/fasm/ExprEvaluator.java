@@ -296,11 +296,10 @@ public final class ExprEvaluator {
 				cb.add("add QWORD [curpkg], rsi");
 			} else {
 				var typeIdent = new Identifier(type.name);
-				var obj = cb.modules.objectGatherer.getObjectInfo(typeIdent);
 
-				cb.add("mov rdi, QWORD [curpkg]");
-				cb.add("mov QWORD [rdi], " + obj.fields.size() * 8);
-				cb.add("add QWORD [curpkg], " + (obj.fields.size() * 8 + 16));
+				// TODO: check if exists
+
+				cb.add("call new_" + typeIdent);
 			}
 
 			return type;

@@ -187,15 +187,44 @@ public class FasmGenerator extends ScopeBaseListener {
 
 	private void writeObjects() {
 		for (var object : modules.objectGatherer.getAllValues()) {
+			// Write metadata
+
 			write(";@OBJ_START," + object.getKey().get());
 
-			for (int i = 0; i < object.getValue().fields.size(); i++) {
+			int fieldCount = object.getValue().fields.size();
+			for (int i = 0; i < fieldCount; i++) {
 				write("\t;@OBJ_FIELD," + object.getValue().fields.get(i) +
 					"," + object.getValue().fieldTypes.get(i));
 			}
 
 			write(";@OBJ_END");
 			write("");
+
+			// Write init code
+
+			write("new_" + object.getKey().get() + ":");
+			codeblock = new Codeblock(modules);
+
+			codeblock.add("push rdx");
+			codeblock.add("mov rdx, QWORD [curpkg]");
+			codeblock.add("push rdx");
+			codeblock.add("mov QWORD [rdx], " + fieldCount * 8);
+			codeblock.add("add QWORD [curpkg], " + (fieldCount * 8 + 16));
+
+			int add = 16;
+			for (int i = 0; i < object.getValue().defaultValues.size(); i++) {
+				var expr = object.getValue().defaultValues.get(i);
+				ExprEvaluator.eval(codeblock, expr);
+				codeblock.add("mov QWORD [rdx + " + add + "], rdi");
+				add += 8;
+			}
+
+			codeblock.add("pop rdi");
+			codeblock.add("pop rdx");
+			codeblock.addReturn();
+
+			write(codeblock.toString());
+			codeblock = null;
 		}
 	}
 

@@ -6,6 +6,7 @@ import java.util.Set;
 import java.util.Map.Entry;
 
 import com.scopelang.*;
+import com.scopelang.ScopeParser.ExprContext;
 import com.scopelang.ScopeParser.ObjectContext;
 import com.scopelang.ScopeParser.ObjectFieldContext;
 
@@ -13,6 +14,7 @@ public class ObjectGatherer extends AbstractGatherer {
 	public static class ScopeObject {
 		public ArrayList<String> fields = new ArrayList<>();
 		public ArrayList<ScopeType> fieldTypes = new ArrayList<>();
+		public ArrayList<ExprContext> defaultValues = new ArrayList<>();
 	}
 
 	private HashMap<Identifier, ScopeObject> objects = new HashMap<>();
@@ -33,6 +35,7 @@ public class ObjectGatherer extends AbstractGatherer {
 		var object = objects.get(currentObject);
 		object.fields.add(ctx.Identifier().getText());
 		object.fieldTypes.add(ScopeType.fromTypeNameCtx(modules, ctx.typeName()));
+		object.defaultValues.add(ctx.expr());
 	}
 
 	@Override
